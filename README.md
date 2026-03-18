@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# qps5 - SQL Server Query Plan Share
 
-## Getting Started
+SQL Server の実行プラン（Query Plan XML）を共有・可視化し、コメントを通じて分析を支援するWebアプリケーションです。
 
-First, run the development server:
+## 概要
+
+`qps5` は、SQL Server の実行プラン（.sqlplan / XML）を貼り付けるだけで、SSMS（SQL Server Management Studio）風のグラフィカルなプランをブラウザ上で再現・共有できるプラットフォームです。
+
+投稿されたプランに対して、本人や他のユーザー、さらにはゲストもコメントを残すことができ、パフォーマンスチューニングの議論を加速させます。
+
+### 主な機能
+
+- **プラン可視化**: XMLデータを SSMS 風のアイコンとツリー構造で表示。
+- **柔軟な投稿**: ログインユーザーはもちろん、ゲストによる一時的な投稿（編集トークン付き）も可能。
+- **詳細なアクセス制御**:
+  - `IsPublic`: 全員に公開、またはログイン者のみに公開を切り替え。
+  - `IsActive`: アーカイブ機能により、一覧からの非表示やコメントの制限を管理。
+- **コメント機能**: Markdown形式でのコメント投稿に対応。プラン投稿者は他者のコメント削除が可能。
+- **認証**: Google認証およびメールアドレスによるサインインに対応。
+
+## 技術スタック
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: TypeScript
+- **Database**: [Turso](https://turso.tech/) (SQLite / libSQL)
+- **Auth**: [NextAuth.js (Auth.js v5)](https://authjs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/)
+- **Mailing**: [Resend](https://resend.com/)
+- **Visualization**: `html-query-plan`
+- **Deployment**: [Vercel](https://vercel.com/)
+
+## セットアップ
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/your-username/qps5.git
+cd qps5
+```
+
+### 2. 依存関係のインストール
+
+```bash
+npm install
+```
+
+### 3. 環境変数の設定
+
+`.env.local` ファイルを作成し、以下の項目を設定してください。
+
+```env
+# Database (Turso)
+TURSO_CONNECTION_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your-auth-token
+
+# Auth.js
+AUTH_SECRET=your-auth-secret
+AUTH_URL=http://localhost:3000
+
+# OAuth (Google)
+AUTH_GOOGLE_ID=your-google-client-id
+AUTH_GOOGLE_SECRET=your-google-client-secret
+
+# Mailing (Resend)
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+### 4. 開発サーバーの起動
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000) でアプリケーションが起動します。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ディレクトリ構成
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app`: App Router ページ、APIルート、認証グループ
+- `src/components`: UIコンポーネント（Atomic Design 準拠）
+- `src/lib`: データベース接続、ユーティリティ、認証設定
+- `src/service`: ビジネスロジック
+- `docs`: 仕様書、データベーススキーマ、設計図
 
-## Learn More
+## UIデザインコンセプト
 
-To learn more about Next.js, take a look at the following resources:
+「**Classic meets Modern**」
+Windows 95/98/2000 時代の信頼感あるネイビー（#000080）を基調としつつ、現代的な余白とコンポーネント配置を採用しています。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ライセンス
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[MIT License](LICENSE)
