@@ -1,25 +1,24 @@
-import { createComment, getComments } from "@/service/qppost-service";
+import { deleteComment, updateComment } from "@/service/qppost-service";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const commentsRaw = await getComments(id);
-    const comments = JSON.parse(JSON.stringify(commentsRaw));
-    return NextResponse.json(comments);
-  } catch (error) {
+    await deleteComment(id);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
     console.error(error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: error.message || "Internal Server Error" },
+      { status: error.message === "Unauthorized" ? 401 : 500 },
     );
   }
 }
 
-export async function POST(
+export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -34,14 +33,13 @@ export async function POST(
       );
     }
 
-    await createComment(id, commentMarkdown);
-
-    return NextResponse.json({ success: true }, { status: 201 });
-  } catch (error) {
+    await updateComment(id, commentMarkdown);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
     console.error(error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: error.message || "Internal Server Error" },
+      { status: error.message === "Unauthorized" ? 401 : 500 },
     );
   }
 }

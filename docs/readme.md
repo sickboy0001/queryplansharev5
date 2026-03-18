@@ -103,8 +103,18 @@ src/
 │   ├── atomic/                # Atoms, Molecules
 │   ├── organisms/             # 複数の部品を組み合わせた塊
 │   └── pages/                 # 各画面のメイン実装（page.tsxから呼ばれる）
-│       └── qppost/
-│            └── qpost.tsx     # クライアント部分の実態
+│        ├── qppost/
+│        │    ├── QpPost.tsx      # クライアント部分の実態（ページレイアウト）
+│        │    ├── PostList.tsx    # クエリプラン一覧表示
+│        │    ├── NewPost.tsx     # クエリプラン新規投稿画面
+│        │    ├── EditPost.tsx    # クエリプラン編集画面
+│        │    ├── PostSidebar.tsx # サイドバー（プラン情報など）
+│        │    ├── CommentSection.tsx # コメントセクション（投稿フォーム＋一覧）
+│        │    └── CommentList.tsx  # コメント一覧表示・編集・削除
+│        ├── dashboard/
+│        │    └── Dashboard.tsx   # ダッシュボード画面
+│        └── comments/
+│             └── Comments.tsx    # 全コメント一覧画面
 ├── service/                   # ビジネスロジック
 │   ├── qppost-service.ts      # getPosts, createPost などの関数
 │   └── user-service.ts        # 

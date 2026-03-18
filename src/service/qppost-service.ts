@@ -228,3 +228,28 @@ export async function deleteComment(commentId: string) {
 
   await query("DELETE FROM qps_comments WHERE id = ?", [commentId]);
 }
+
+export async function updateComment(
+  commentId: string,
+  commentMarkdown: string,
+) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const res = await query("SELECT owner_id FROM qps_comments WHERE id = ?", [
+    commentId,
+  ]);
+  const comment = res.rows[0];
+  if (!comment) throw new Error("Comment not found");
+
+  // Only the owner can edit their comment
+  if (comment.owner_id !== session.user.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const now = new Date().toISOString();
+  await query(
+    "UPDATE qps_comments SET comment_markdown = ?, updated_at = ? WHERE id = ?",
+    [commentMarkdown, now, commentId],
+  );
+}

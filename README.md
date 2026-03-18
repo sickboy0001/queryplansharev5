@@ -90,3 +90,11 @@ Windows 95/98/2000 時代の信頼感あるネイビー（#000080）を基調と
 ## ライセンス
 
 [MIT License](LICENSE)
+
+
+## TODO
+- [ ] 資格ごとの機能の割り当て
+- [ ] デプロイ後でResendでのテスト
+
+## history
+- 2026/03/19 FirstCommit
