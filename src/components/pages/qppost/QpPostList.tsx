@@ -15,6 +15,7 @@ type Post = {
   id: string;
   title: string;
   comment_markdown: string;
+  owner_id?: string;
   owner_name?: string;
   updated_at: string;
 };
@@ -22,9 +23,25 @@ type Post = {
 interface Props {
   posts: Post[];
   ownerId?: string;
+  currentUserId?: string;
+  isAdmin?: boolean;
 }
 
-export default function PostList({ posts, ownerId }: Props) {
+export default function QpPostList({
+  posts,
+  ownerId,
+  currentUserId,
+  isAdmin,
+}: Props) {
+  // マークダウン記号を取り除く簡易的な関数
+  const stripMarkdown = (text: string) => {
+    return text
+      .replace(/[#*`~_]/g, "") // 基本的な記号 (# * ` ~ _) を削除
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // リンク [text](url) -> text
+      .replace(/\n/g, " ") // 改行をスペースに
+      .trim();
+  };
+
   return (
     <div className="container py-8 px-4 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8 border-b-4 border-[#000080] pb-4">
@@ -58,11 +75,20 @@ export default function PostList({ posts, ownerId }: Props) {
             </CardHeader>
             <CardContent className="flex-1 p-6">
               <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed italic">
-                {post.comment_markdown || "No description provided."}
+                {post.comment_markdown
+                  ? stripMarkdown(post.comment_markdown)
+                  : "No description provided."}
               </p>
             </CardContent>
-            <CardFooter className="p-6 pt-0">
-              <Link href={`/qpposts/${post.id}`} className="w-full">
+            <CardFooter className="p-6 pt-0 flex gap-2">
+              <Link
+                href={`/qpposts/${post.id}`}
+                className={
+                  currentUserId === post.owner_id || isAdmin
+                    ? "flex-1"
+                    : "w-full"
+                }
+              >
                 <Button
                   variant="outline"
                   className="w-full border-2 border-[#000080] text-[#000080] hover:bg-[#000080] hover:text-white font-bold transition-all h-10 shadow-sm"
@@ -70,6 +96,13 @@ export default function PostList({ posts, ownerId }: Props) {
                   VIEW PLAN
                 </Button>
               </Link>
+              {(currentUserId === post.owner_id || isAdmin) && (
+                <Link href={`/qpposts/${post.id}/edit`} className="flex-1">
+                  <Button className="w-full bg-[#000080] hover:bg-[#0000a0] text-white font-bold transition-all h-10 shadow-sm border-2 border-[#000080]">
+                    EDIT PLAN
+                  </Button>
+                </Link>
+              )}
             </CardFooter>
           </Card>
         ))}

@@ -13,6 +13,12 @@ export async function getCurrentUser() {
   return res.rows[0] || null;
 }
 
+export function isAdminEmail(email?: string | null) {
+  if (!email) return false;
+  const adminMails = process.env.ADMINISTRATOR_MAIL?.split(",") || [];
+  return adminMails.includes(email);
+}
+
 export async function getUserById(id: string) {
   const res = await query(
     "SELECT id, display_name, self_intro_markdown, updated_at FROM users WHERE id = ?",

@@ -3,9 +3,12 @@ import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import MobileMenuButton from "./MobileMenuButton";
 import { handleSignOut } from "@/lib/actions/auth";
+import { isAdminEmail } from "@/service/user-service";
 
 export default async function Header() {
   const session = await auth();
+
+  const isAdmin = isAdminEmail(session?.user?.email);
 
   return (
     <header className="bg-white text-[#4d4db2] border-b-4 border-[#4d4db2] shadow-sm sticky top-0 z-50">
@@ -27,9 +30,14 @@ export default async function Header() {
             <div className="flex items-center gap-6">
               <Link
                 href="/setting"
-                className="text-sm font-bold hover:opacity-70 transition-opacity border-b-2 border-transparent hover:border-[#4d4db2]"
+                className="text-sm font-bold hover:opacity-70 transition-opacity border-b-2 border-transparent hover:border-[#4d4db2] flex items-center gap-2"
               >
                 {session.user.name || session.user.email}
+                {isAdmin && (
+                  <span className="bg-red-100 text-red-600 text-[10px] px-1.5 py-0.5 rounded-full border border-red-200 uppercase tracking-wider font-black">
+                    Admin
+                  </span>
+                )}
               </Link>
               <form action={handleSignOut}>
                 <Button
