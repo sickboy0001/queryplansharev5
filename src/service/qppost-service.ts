@@ -1,6 +1,8 @@
 import { query } from "@/lib/db";
 import { auth } from "@/auth";
 import { v4 as uuidv4 } from "uuid";
+import { generateShortId } from "@/lib/utils";
+import { isAdminEmail } from "@/service/user-service";
 
 export type Post = {
   id: string;
@@ -62,6 +64,21 @@ export async function getPosts(
   return res.rows as unknown as Post[];
 }
 
+/**
+ * Fetch all posts by a specific user, including inactive ones
+ */
+export async function getMyAllPosts(userId: string) {
+  const sql = `
+    SELECT p.*, u.display_name as owner_name 
+    FROM qps_posts p
+    LEFT JOIN users u ON p.owner_id = u.id
+    WHERE p.owner_id = ?
+    ORDER BY p.updated_at DESC
+  `;
+  const res = await query(sql, [userId]);
+  return res.rows as unknown as Post[];
+}
+
 export async function createPost(data: {
   query_plan_xml: string;
   title: string;
@@ -69,7 +86,7 @@ export async function createPost(data: {
   is_public: boolean;
 }) {
   const session = await auth();
-  const id = uuidv4();
+  const id = generateShortId();
   const now = new Date().toISOString();
 
   // Ensure owner_id is either a valid existing user ID or null
@@ -130,11 +147,12 @@ export async function updatePost(
   if (!post) throw new Error("Post not found");
 
   // Auth check
+  const isAdmin = isAdminEmail(session?.user?.email);
   const isOwner = session?.user?.id && post.owner_id === session.user.id;
   const isGuestWithToken =
     post.edit_token && post.edit_token === data.edit_token;
 
-  if (!isOwner && !isGuestWithToken) {
+  if (!isAdmin && !isOwner && !isGuestWithToken) {
     throw new Error("Unauthorized");
   }
 
@@ -168,88 +186,22 @@ export async function updatePost(
   await query(`UPDATE qps_posts SET ${updates.join(", ")} WHERE id = ?`, args);
 }
 
-// Comments logic
-export async function getComments(postId: string) {
-  const res = await query(
-    `SELECT c.*, u.display_name as owner_name 
-         FROM qps_comments c
-         LEFT JOIN users u ON c.owner_id = u.id
-         WHERE c.post_id = ?
-         ORDER BY c.created_at ASC`,
-    [postId],
-  );
-  return res.rows;
-}
-
-export async function createComment(postId: string, commentMarkdown: string) {
+export async function deletePost(id: string, editToken?: string) {
   const session = await auth();
-  const id = uuidv4();
-  const now = new Date().toISOString();
+  const post = await getPostById(id);
+  if (!post) throw new Error("Post not found");
 
-  // Ensure owner_id is either a valid existing user ID or null
-  let owner_id: string | null = null;
-  if (session?.user?.id) {
-    const userRes = await query("SELECT id FROM users WHERE id = ?", [
-      session.user.id,
-    ]);
-    if (userRes.rows.length > 0) {
-      owner_id = session.user.id;
-    }
-  }
+  // Auth check
+  const isAdmin = isAdminEmail(session?.user?.email);
+  const isOwner = session?.user?.id && post.owner_id === session.user.id;
+  const isGuestWithToken = post.edit_token && post.edit_token === editToken;
 
-  await query(
-    `INSERT INTO qps_comments (id, post_id, comment_markdown, owner_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, postId, commentMarkdown, owner_id, now, now],
-  );
-}
-
-export async function deleteComment(commentId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  // Check if user is comment owner or post owner
-  const res = await query(
-    `SELECT c.owner_id as comment_owner, p.owner_id as post_owner 
-         FROM qps_comments c
-         JOIN qps_posts p ON c.post_id = p.id
-         WHERE c.id = ?`,
-    [commentId],
-  );
-  const row = res.rows[0];
-  if (!row) throw new Error("Comment not found");
-
-  if (
-    row.comment_owner !== session.user.id &&
-    row.post_owner !== session.user.id
-  ) {
+  if (!isAdmin && !isOwner && !isGuestWithToken) {
     throw new Error("Unauthorized");
   }
 
-  await query("DELETE FROM qps_comments WHERE id = ?", [commentId]);
-}
-
-export async function updateComment(
-  commentId: string,
-  commentMarkdown: string,
-) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  const res = await query("SELECT owner_id FROM qps_comments WHERE id = ?", [
-    commentId,
-  ]);
-  const comment = res.rows[0];
-  if (!comment) throw new Error("Comment not found");
-
-  // Only the owner can edit their comment
-  if (comment.owner_id !== session.user.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const now = new Date().toISOString();
-  await query(
-    "UPDATE qps_comments SET comment_markdown = ?, updated_at = ? WHERE id = ?",
-    [commentMarkdown, now, commentId],
-  );
+  // Delete comments first due to potential foreign keys (if any)
+  await query("DELETE FROM qps_comments WHERE post_id = ?", [id]);
+  // Delete the post
+  await query("DELETE FROM qps_posts WHERE id = ?", [id]);
 }

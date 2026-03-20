@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { getRelativeTime } from "@/lib/utils/date";
 import {
   Card,
@@ -10,6 +12,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertCircle, X } from "lucide-react";
 
 type Post = {
   id: string;
@@ -34,8 +37,40 @@ interface Props {
 }
 
 export default function Dashboard({ posts, recentComments }: Props) {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
+  const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    if (errorParam) {
+      setShowError(true);
+      // URLからクエリパラメータを削除するが、コンポーネント内のエラー表示状態は維持する
+      const url = new URL(window.location.href);
+      url.searchParams.delete("error");
+      window.history.replaceState({}, "", url.pathname);
+    }
+  }, [errorParam]);
+
   return (
     <div className="container py-8 space-y-12 px-4 max-w-7xl mx-auto">
+      {showError && (
+        <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-4">
+            <AlertCircle className="shrink-0" size={24} />
+            <div className="font-bold">
+              アクセス権限がありません。管理者または作成者のみがアクセス可能です。
+            </div>
+          </div>
+          <button
+            onClick={() => setShowError(false)}
+            className="hover:bg-red-100 p-1 rounded-full transition-colors"
+            title="閉じる"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="text-center py-20 border-4 border-[#000080]/20 bg-white rounded-2xl shadow-xl mb-12 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-2 bg-[#000080]"></div>

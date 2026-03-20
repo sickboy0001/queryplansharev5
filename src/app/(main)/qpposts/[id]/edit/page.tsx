@@ -2,6 +2,7 @@ import { getPostById } from "@/service/qppost-service";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import EditPost from "@/components/pages/qppost/EditPost";
+import { isAdminEmail } from "@/service/user-service";
 
 export default async function EditPostPage({
   params,
@@ -17,9 +18,11 @@ export default async function EditPostPage({
   }
 
   // Check if authorized
+  const isAdmin = isAdminEmail(session?.user?.email);
   const isOwner = session?.user?.id && post.owner_id === session.user.id;
-  if (!isOwner) {
-    redirect(`/qpposts/${id}`);
+
+  if (!isAdmin && !isOwner) {
+    redirect("/dashboard?error=unauthorized");
   }
 
   // Ensure plain object for client component

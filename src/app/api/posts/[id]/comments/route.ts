@@ -1,4 +1,4 @@
-import { createComment, getComments } from "@/service/qppost-service";
+import { createComment, getComments } from "@/service/comments-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(

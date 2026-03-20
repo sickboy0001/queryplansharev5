@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Trash2 } from "lucide-react";
 
 type Post = {
   id: string;
@@ -23,6 +23,7 @@ type Post = {
   comment_markdown: string;
   is_active: number | boolean;
   is_public: number | boolean;
+  edit_token?: string | null;
 };
 
 interface Props {
@@ -36,6 +37,7 @@ export default function EditPost({ post }: Props) {
   const [isPublic, setIsPublic] = useState(!!post.is_public);
   const [isActive, setIsActive] = useState(!!post.is_active);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [xmlFocused, setXmlFocused] = useState(false);
   const [commentFocused, setCommentFocused] = useState(false);
   const router = useRouter();
@@ -65,6 +67,41 @@ export default function EditPost({ post }: Props) {
       console.error(err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (
+      !confirm(
+        "このプランを削除してもよろしいですか？物理削除です。この操作は取り消せません。",
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const url = new URL(`/api/posts/${post.id}`, window.location.origin);
+      if (post.edit_token) {
+        url.searchParams.append("editToken", post.edit_token);
+      }
+
+      const res = await fetch(url.toString(), {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        router.push("/qpposts");
+        router.refresh();
+      } else {
+        const errorData = await res.json();
+        alert(`削除に失敗しました: ${errorData.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("削除中にエラーが発生しました。");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -186,13 +223,25 @@ export default function EditPost({ post }: Props) {
                 <ArrowLeft size={16} className="mr-2" />
                 戻る
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-[#000080] hover:bg-[#0000a0] text-white font-bold px-10 shadow-md h-11"
-              >
-                {isSubmitting ? "更新中..." : "変更を保存する"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  type="button"
+                  disabled={isSubmitting || isDeleting}
+                  onClick={handleDelete}
+                  className="font-bold shadow-md h-11 px-6"
+                >
+                  <Trash2 size={16} className="mr-2" />
+                  {isDeleting ? "削除中..." : "削除する"}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isDeleting}
+                  className="bg-[#000080] hover:bg-[#0000a0] text-white font-bold px-10 shadow-md h-11"
+                >
+                  {isSubmitting ? "更新中..." : "変更を保存する"}
+                </Button>
+              </div>
             </CardFooter>
           </form>
         </Card>

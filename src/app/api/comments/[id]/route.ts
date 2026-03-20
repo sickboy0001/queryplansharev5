@@ -1,4 +1,4 @@
-import { deleteComment, updateComment } from "@/service/qppost-service";
+import { deleteComment, updateComment } from "@/service/comments-service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function DELETE(
