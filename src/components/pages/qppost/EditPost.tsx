@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,7 +73,12 @@ export default function EditPost({
     initialUnlistedLink || null,
   );
   const [isUpdatingLink, setIsUpdatingLink] = useState(false);
+  const [origin, setOrigin] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const isLinkExpired = unlistedLink
     ? new Date(unlistedLink.expires_at) < new Date()
@@ -99,7 +104,7 @@ export default function EditPost({
 
   const handleCopyLink = () => {
     if (!unlistedLink) return;
-    const url = `${window.location.origin}/qpposts/unlisted/${unlistedLink.id}`;
+    const url = `${origin}/qpposts/unlisted/${unlistedLink.id}`;
     navigator.clipboard.writeText(url);
     alert(`クリップボードにコピーしました: ${url}`);
   };
@@ -446,7 +451,7 @@ export default function EditPost({
                         <div className="flex gap-2">
                           <Input
                             readOnly
-                            value={`${window.location.origin}/qpposts/unlisted/${unlistedLink.id}`}
+                            value={`${origin}/qpposts/unlisted/${unlistedLink.id}`}
                             className="bg-white border-slate-200 font-mono text-xs"
                           />
                           <Button
