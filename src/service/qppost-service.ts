@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { v4 as uuidv4 } from "uuid";
 import { generateShortId } from "@/lib/utils";
 import { isAdminEmail } from "@/service/user-service";
+import { nanoid } from "nanoid";
 
 export type Post = {
   id: string;
@@ -18,6 +19,13 @@ export type Post = {
   owner_name?: string;
 };
 
+export type UnlistedLink = {
+  id: string;
+  post_id: string;
+  expires_at: string;
+  created_at: string;
+};
+// http://localhost:3000/qpposts/unlisted/Fq0JnIc7ZorD
 export async function getPosts(
   options: {
     ownerId?: string;
@@ -36,23 +44,23 @@ export async function getPosts(
   `;
   const args: any[] = [];
 
-  // If not owner, only public or if logged in, owner + public
+  // If not owner, only public (is_public = 2) or if logged in, owner + public
   if (options.ownerId) {
     sql += " AND p.owner_id = ?";
     args.push(options.ownerId);
 
     // If viewing someone else's profile, only public
     if (userId !== options.ownerId) {
-      sql += " AND p.is_public = 1";
+      sql += " AND p.is_public = 2";
     }
   } else {
     // General list
     if (!userId) {
       // Guest: only public
-      sql += " AND p.is_public = 1";
+      sql += " AND p.is_public = 2";
     } else {
       // Logged in: public OR owner
-      sql += " AND (p.is_public = 1 OR p.owner_id = ?)";
+      sql += " AND (p.is_public = 2 OR p.owner_id = ?)";
       args.push(userId);
     }
   }
@@ -112,7 +120,7 @@ export async function createPost(data: {
       data.comment_markdown,
       owner_id,
       editToken,
-      data.is_public ? 1 : 0,
+      data.is_public ? 2 : 0, // 2: Public, 0: Private
       now,
       now,
     ],
@@ -169,7 +177,7 @@ export async function updatePost(
   }
   if (data.is_public !== undefined) {
     updates.push("is_public = ?");
-    args.push(data.is_public ? 1 : 0);
+    args.push(data.is_public);
   }
   if (data.is_active !== undefined) {
     updates.push("is_active = ?");
@@ -204,4 +212,80 @@ export async function deletePost(id: string, editToken?: string) {
   await query("DELETE FROM qps_comments WHERE post_id = ?", [id]);
   // Delete the post
   await query("DELETE FROM qps_posts WHERE id = ?", [id]);
+}
+
+/**
+ * Unlisted Link operations
+ */
+
+export async function getUnlistedLinkByPostId(postId: string) {
+  const res = await query(
+    "SELECT * FROM qps_unlisted_links WHERE post_id = ?",
+    [postId],
+  );
+  return (res.rows[0] as unknown as UnlistedLink) || null;
+}
+
+export async function getUnlistedLinkByToken(token: string) {
+  const res = await query("SELECT * FROM qps_unlisted_links WHERE id = ?", [
+    token,
+  ]);
+  return (res.rows[0] as unknown as UnlistedLink) || null;
+}
+
+export async function createUnlistedLink(
+  postId: string,
+  expiresHours: number = 720,
+) {
+  const id = nanoid(12);
+  const now = new Date();
+  const expiresAt = new Date(
+    now.getTime() + expiresHours * 60 * 60 * 1000,
+  ).toISOString();
+  const createdAt = now.toISOString();
+
+  await query(
+    "INSERT INTO qps_unlisted_links (id, post_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+    [id, postId, expiresAt, createdAt],
+  );
+
+  return { id, post_id: postId, expires_at: expiresAt, created_at: createdAt };
+}
+
+export async function deleteUnlistedLinkByPostId(postId: string) {
+  await query("DELETE FROM qps_unlisted_links WHERE post_id = ?", [postId]);
+}
+
+export async function updateUnlistedLinkExpiry(
+  token: string,
+  additionalDays: number,
+) {
+  const link = await getUnlistedLinkByToken(token);
+  if (!link) throw new Error("Link not found");
+
+  const currentExpiresAt = new Date(link.expires_at);
+  const newExpiresAt = new Date(
+    currentExpiresAt.getTime() + additionalDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  await query("UPDATE qps_unlisted_links SET expires_at = ? WHERE id = ?", [
+    newExpiresAt,
+    token,
+  ]);
+
+  return newExpiresAt;
+}
+
+export async function resetUnlistedLinkExpiry(token: string, hours: number) {
+  const now = new Date();
+  const newExpiresAt = new Date(
+    now.getTime() + hours * 60 * 60 * 1000,
+  ).toISOString();
+
+  await query("UPDATE qps_unlisted_links SET expires_at = ? WHERE id = ?", [
+    newExpiresAt,
+    token,
+  ]);
+
+  return newExpiresAt;
 }

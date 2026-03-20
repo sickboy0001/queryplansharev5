@@ -1,4 +1,4 @@
-import { getPostById } from "@/service/qppost-service";
+import { getPostById, getUnlistedLinkByPostId } from "@/service/qppost-service";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import EditPost from "@/components/pages/qppost/EditPost";
@@ -25,8 +25,13 @@ export default async function EditPostPage({
     redirect("/dashboard?error=unauthorized");
   }
 
-  // Ensure plain object for client component
-  const plainPost = JSON.parse(JSON.stringify(post));
+  const unlistedLink = await getUnlistedLinkByPostId(id);
 
-  return <EditPost post={plainPost} />;
+  // Ensure plain objects for client component
+  const plainPost = JSON.parse(JSON.stringify(post));
+  const plainUnlistedLink = unlistedLink
+    ? JSON.parse(JSON.stringify(unlistedLink))
+    : null;
+
+  return <EditPost post={plainPost} unlistedLink={plainUnlistedLink} />;
 }

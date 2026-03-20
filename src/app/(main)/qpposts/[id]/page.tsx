@@ -1,4 +1,4 @@
-﻿import { getPostById } from "@/service/qppost-service";
+﻿import { getPostById, getUnlistedLinkByToken } from "@/service/qppost-service";
 import { notFound, redirect } from "next/navigation";
 import QpPost from "@/components/pages/qppost/QpPost";
 import { auth } from "@/auth";
@@ -6,10 +6,13 @@ import { isAdminEmail } from "@/service/user-service";
 
 export default async function PostDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ utoken?: string }>;
 }) {
   const { id } = await params;
+  const { utoken } = await searchParams;
   const post = await getPostById(id);
   const session = await auth();
 
@@ -17,14 +20,36 @@ export default async function PostDetailPage({
     notFound();
   }
 
-  // Deactive check
-  if (post.is_active === 0) {
-    const isAdmin = isAdminEmail(session?.user?.email);
-    const isOwner = session?.user?.id && post.owner_id === session.user.id;
+  const isAdmin = isAdminEmail(session?.user?.email);
+  const isOwner = session?.user?.id && post.owner_id === session.user.id;
 
-    if (!isAdmin && !isOwner) {
-      redirect("/dashboard?error=unauthorized");
+  // Access Control logic
+  // 1. is_public = 2 (Public): Anyone can see
+  // 2. is_public = 1 (Unlisted): Owner/Admin OR Valid utoken within expiry
+  // 3. is_public = 0 (Private): Owner/Admin only
+  // 4. is_active = 0: Owner/Admin only
+
+  let hasAccess = false;
+
+  if (isAdmin || isOwner) {
+    hasAccess = true;
+  } else if (post.is_active === 1) {
+    if (post.is_public === 2) {
+      hasAccess = true;
+    } else if (post.is_public === 1 && utoken) {
+      // Check utoken validity
+      const link = await getUnlistedLinkByToken(utoken);
+      if (link && link.post_id === id) {
+        const expiresAt = new Date(link.expires_at);
+        if (new Date() <= expiresAt) {
+          hasAccess = true;
+        }
+      }
     }
+  }
+
+  if (!hasAccess) {
+    redirect("/dashboard?error=unauthorized");
   }
 
   // Ensure plain object for client component

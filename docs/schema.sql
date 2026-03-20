@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS qps_posts (
     owner_id TEXT, -- UUID, NULL for guest
     edit_token TEXT, -- Token for guest editing
     is_active INTEGER DEFAULT 1, -- 1: Active, 0: Archived
-    is_public INTEGER DEFAULT 1, -- 1: Public, 0: Private
+    is_public INTEGER DEFAULT 2, -- 2: Public(一覧あり), 1: Unlisted:限定公開(一覧なし/URLのみ), 0: Private(本人/Adminのみ)
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (owner_id) REFERENCES users(id)

@@ -119,7 +119,7 @@ export async function getAllComments() {
      FROM qps_comments c
      JOIN qps_posts p ON c.post_id = p.id
      LEFT JOIN users u ON c.owner_id = u.id
-     WHERE p.is_active = 1 AND p.is_public = 1
+     WHERE p.is_active = 1 AND p.is_public = 2
      ORDER BY c.created_at DESC`,
   );
   return res.rows as unknown as CommentWithPost[];
@@ -134,7 +134,7 @@ export async function getRecentComments(limit: number = 5) {
      FROM qps_comments c
      JOIN qps_posts p ON c.post_id = p.id
      LEFT JOIN users u ON c.owner_id = u.id
-     WHERE p.is_active = 1 AND p.is_public = 1
+     WHERE p.is_active = 1 AND p.is_public = 2
      ORDER BY c.created_at DESC LIMIT ?`,
     [limit],
   );

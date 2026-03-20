@@ -14,7 +14,26 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  Link as LinkIcon,
+  Copy,
+  RefreshCw,
+  PlusCircle,
+  AlertCircle,
+  Clock,
+  Globe,
+  Lock,
+  EyeOff,
+} from "lucide-react";
+import {
+  getOrCreateUnlistedLinkAction,
+  addExpiryDaysAction,
+  regenerateUnlistedLinkAction,
+  resetExpiryAction,
+} from "@/lib/actions/qppost";
 
 type Post = {
   id: string;
@@ -22,25 +41,123 @@ type Post = {
   title: string;
   comment_markdown: string;
   is_active: number | boolean;
-  is_public: number | boolean;
+  is_public: number;
   edit_token?: string | null;
+};
+
+type UnlistedLink = {
+  id: string;
+  post_id: string;
+  expires_at: string;
 };
 
 interface Props {
   post: Post;
+  unlistedLink?: UnlistedLink | null;
 }
 
-export default function EditPost({ post }: Props) {
+export default function EditPost({
+  post,
+  unlistedLink: initialUnlistedLink,
+}: Props) {
   const [title, setTitle] = useState(post.title);
   const [xml, setXml] = useState(post.query_plan_xml);
   const [comment, setComment] = useState(post.comment_markdown);
-  const [isPublic, setIsPublic] = useState(!!post.is_public);
+  const [isPublic, setIsPublic] = useState<number>(Number(post.is_public));
   const [isActive, setIsActive] = useState(!!post.is_active);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [xmlFocused, setXmlFocused] = useState(false);
   const [commentFocused, setCommentFocused] = useState(false);
+  const [unlistedLink, setUnlistedLink] = useState<UnlistedLink | null>(
+    initialUnlistedLink || null,
+  );
+  const [isUpdatingLink, setIsUpdatingLink] = useState(false);
   const router = useRouter();
+
+  const isLinkExpired = unlistedLink
+    ? new Date(unlistedLink.expires_at) < new Date()
+    : false;
+
+  const handleGetUnlistedLink = async () => {
+    setIsUpdatingLink(true);
+    try {
+      const link = await getOrCreateUnlistedLinkAction(post.id);
+      setUnlistedLink(link as any);
+      // 自動的に限定公開に切り替える（ユーザーの意図に合わせる）
+      if (isPublic === 0) {
+        setIsPublic(1);
+      }
+      alert("限定公開URLを取得しました。");
+    } catch (err) {
+      console.error(err);
+      alert("限定公開URLの取得に失敗しました。");
+    } finally {
+      setIsUpdatingLink(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!unlistedLink) return;
+    const url = `${window.location.origin}/qpposts/unlisted/${unlistedLink.id}`;
+    navigator.clipboard.writeText(url);
+    alert(`クリップボードにコピーしました: ${url}`);
+  };
+
+  const handleAddExpiry = async (days: number) => {
+    if (!unlistedLink) return;
+    setIsUpdatingLink(true);
+    try {
+      await addExpiryDaysAction(post.id, unlistedLink.id, days);
+      const newExpiry = new Date(
+        new Date(unlistedLink.expires_at).getTime() +
+          days * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      setUnlistedLink({ ...unlistedLink, expires_at: newExpiry });
+      alert(`${days}日分延長しました。`);
+    } catch (err) {
+      console.error(err);
+      alert("期限の更新に失敗しました。");
+    } finally {
+      setIsUpdatingLink(false);
+    }
+  };
+
+  const handleResetExpiry = async () => {
+    if (!unlistedLink) return;
+    setIsUpdatingLink(true);
+    try {
+      await resetExpiryAction(post.id, unlistedLink.id, 720); // Reset to 30 days
+      const newExpiry = new Date(
+        new Date().getTime() + 720 * 60 * 60 * 1000,
+      ).toISOString();
+      setUnlistedLink({ ...unlistedLink, expires_at: newExpiry });
+      alert("本日より30日間に設定されました。");
+    } catch (err) {
+      console.error(err);
+      alert("期限の更新に失敗しました。");
+    } finally {
+      setIsUpdatingLink(false);
+    }
+  };
+
+  const handleRegenerateLink = async () => {
+    if (
+      !confirm("URLを再採番すると、現在のURLは無効になります。よろしいですか？")
+    )
+      return;
+    setIsUpdatingLink(true);
+    try {
+      const link = await regenerateUnlistedLinkAction(post.id);
+      setUnlistedLink(link as any);
+      alert("新しい限定公開URLを発行しました。");
+    } catch (err) {
+      console.error(err);
+      alert("URLの再生成に失敗しました。");
+    } finally {
+      setIsUpdatingLink(false);
+    }
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -180,22 +297,91 @@ export default function EditPost({ post }: Props) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-4 bg-slate-50 p-4 rounded-lg border-2 border-[#000080]/10">
-                  <Switch
-                    id="is-public"
-                    checked={isPublic}
-                    onCheckedChange={setIsPublic}
-                  />
-                  <Label
-                    htmlFor="is-public"
-                    className="font-bold text-slate-700 cursor-pointer text-sm select-none"
+              <div className="space-y-4">
+                <Label className="font-bold text-[#000080] text-sm uppercase tracking-wider block border-b border-slate-100 pb-2">
+                  公開設定
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div
+                    onClick={() => setIsPublic(2)}
+                    className={`flex flex-col gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                      isPublic === 2
+                        ? "border-[#000080] bg-[#000080]/5 shadow-md"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-300"
+                    }`}
                   >
-                    全体に公開する
-                  </Label>
+                    <div className="flex items-center gap-2">
+                      <Globe
+                        size={18}
+                        className={
+                          isPublic === 2 ? "text-[#000080]" : "text-slate-400"
+                        }
+                      />
+                      <span
+                        className={`font-bold text-sm ${isPublic === 2 ? "text-[#000080]" : "text-slate-600"}`}
+                      >
+                        全体公開
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      プラン一覧に表示され、誰でも検索・閲覧が可能です。
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setIsPublic(1)}
+                    className={`flex flex-col gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                      isPublic === 1
+                        ? "border-[#000080] bg-[#000080]/5 shadow-md"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <EyeOff
+                        size={18}
+                        className={
+                          isPublic === 1 ? "text-[#000080]" : "text-slate-400"
+                        }
+                      />
+                      <span
+                        className={`font-bold text-sm ${isPublic === 1 ? "text-[#000080]" : "text-slate-600"}`}
+                      >
+                        限定公開
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      一覧には表示されません。URLを知っている人のみ閲覧可能です。
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setIsPublic(0)}
+                    className={`flex flex-col gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                      isPublic === 0
+                        ? "border-[#000080] bg-[#000080]/5 shadow-md"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock
+                        size={18}
+                        className={
+                          isPublic === 0 ? "text-[#000080]" : "text-slate-400"
+                        }
+                      />
+                      <span
+                        className={`font-bold text-sm ${isPublic === 0 ? "text-[#000080]" : "text-slate-600"}`}
+                      >
+                        非公開
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      作成者本人と管理者のみが閲覧・編集可能です。
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-4 bg-slate-50 p-4 rounded-lg border-2 border-[#000080]/10">
+                <div className="flex items-center space-x-4 bg-slate-50 p-4 rounded-lg border-2 border-[#000080]/10 mt-4">
                   <Switch
                     id="is-active"
                     checked={isActive}
@@ -205,9 +391,157 @@ export default function EditPost({ post }: Props) {
                     htmlFor="is-active"
                     className="font-bold text-slate-700 cursor-pointer text-sm select-none"
                   >
-                    アクティブ状態（非表示にしない）
+                    アクティブ状態（アーカイブしない）
                   </Label>
                 </div>
+              </div>
+
+              {/* Unlisted Link Section */}
+              <div
+                className="space-y-4 pt-6 border-t border-slate-100"
+                id="section-unlisted"
+              >
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-[#000080] text-sm uppercase tracking-wider">
+                    限定公開 (Unlisted) 用URLの設定
+                  </Label>
+                </div>
+
+                {!unlistedLink ? (
+                  <div className="bg-slate-50 p-6 rounded-xl border-2 border-dashed border-slate-200 text-center">
+                    <LinkIcon
+                      className="mx-auto mb-3 text-slate-400"
+                      size={32}
+                    />
+                    <p className="text-sm text-slate-500 mb-4">
+                      「限定公開」で使用する専用のURLを発行します。
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleGetUnlistedLink}
+                      disabled={isUpdatingLink}
+                      className="bg-[#000080] hover:bg-[#0000a0]"
+                    >
+                      {isUpdatingLink ? (
+                        <RefreshCw size={16} className="mr-2 animate-spin" />
+                      ) : (
+                        <PlusCircle size={16} className="mr-2" />
+                      )}
+                      限定公開URLを発行する
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 p-6 rounded-xl border-2 border-[#000080]/10 space-y-4">
+                    {isPublic !== 1 && (
+                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center gap-3 text-amber-800 text-xs font-bold">
+                        <AlertCircle size={16} className="shrink-0" />
+                        URLを発行済みですが、公開設定が「限定公開」になっていません。
+                      </div>
+                    )}
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                      <div className="flex-1 w-full">
+                        <Label className="text-xs font-bold text-slate-500 mb-1 block">
+                          限定公開用URL
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            readOnly
+                            value={`${window.location.origin}/qpposts/unlisted/${unlistedLink.id}`}
+                            className="bg-white border-slate-200 font-mono text-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopyLink}
+                            title="コピー"
+                          >
+                            <Copy size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRegenerateLink}
+                          disabled={isUpdatingLink}
+                          className="text-slate-500 hover:text-red-600"
+                        >
+                          <RefreshCw
+                            size={14}
+                            className={`mr-1 ${isUpdatingLink ? "animate-spin" : ""}`}
+                          />
+                          再採番
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-200/50">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock size={16} className="text-slate-400" />
+                        <span className="font-bold text-slate-600">
+                          有効期限:
+                        </span>
+                        <span
+                          className={`font-mono ${isLinkExpired ? "text-red-600 font-bold" : "text-slate-700"}`}
+                        >
+                          {new Date(unlistedLink.expires_at).toLocaleString()}
+                        </span>
+                        {isLinkExpired && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-600">
+                            <AlertCircle size={12} className="mr-1" />
+                            期限切れ
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 ml-auto">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddExpiry(1)}
+                          disabled={isUpdatingLink}
+                          className="h-8 text-xs"
+                        >
+                          +1日
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddExpiry(10)}
+                          disabled={isUpdatingLink}
+                          className="h-8 text-xs"
+                        >
+                          +10日
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddExpiry(100)}
+                          disabled={isUpdatingLink}
+                          className="h-8 text-xs"
+                        >
+                          +100日
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleResetExpiry}
+                          disabled={isUpdatingLink}
+                          className="h-8 text-xs"
+                        >
+                          期限をリセット
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter
@@ -286,6 +620,17 @@ export default function EditPost({ post }: Props) {
             >
               <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               プランの説明
+            </button>
+            <button
+              onClick={() =>
+                document
+                  .getElementById("section-unlisted")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+            >
+              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              限定公開設定
             </button>
             <button
               onClick={() =>
