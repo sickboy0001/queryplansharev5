@@ -9,7 +9,7 @@ async function sendResendEmail({
   to,
   subject,
   html,
-  from = "QPS <onboarding@resend.dev>",
+  from = "QPS <noreply@stockprofit10.net>",
 }: {
   to: string | string[];
   subject: string;
@@ -56,9 +56,6 @@ export async function sendVerificationEmail(to: string, url: string) {
       <p style="text-align: center; font-size: 12px; color: #94a3b8;">
         &copy; ${new Date().getFullYear()} QPS - SQL Server Query Plan Share
       </p>
-      <div style="margin-top: 20px; padding: 10px; background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 4px; font-size: 11px; color: #991b1b;">
-        ※制限事項：Resendの無料枠（ドメイン未認証）を使用しているため、管理者（syunjyu0001@gmail.com）以外への送信は現在制限されています。
-      </div>
     </div>
   `;
 
@@ -89,9 +86,6 @@ export async function sendPasswordResetEmail(to: string, url: string) {
       <p style="text-align: center; font-size: 12px; color: #94a3b8;">
         &copy; ${new Date().getFullYear()} QPS - SQL Server Query Plan Share
       </p>
-      <div style="margin-top: 20px; padding: 10px; background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 4px; font-size: 11px; color: #991b1b;">
-        ※制限事項：Resendの無料枠（ドメイン未認証）を使用しているため、管理者（syunjyu0001@gmail.com）以外への送信は現在制限されています。
-      </div>
     </div>
   `;
 
