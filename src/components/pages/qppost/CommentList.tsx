@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { getRelativeTime, displayDate } from "@/lib/utils/date";
+import { displayDate, getRelativeTime } from "@/lib/utils/date";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit2, Trash2, X, Check } from "lucide-react";
+import { UserTooltip } from "@/components/organisms/UserTooltip";
 
 type Comment = {
   id: string;
@@ -98,9 +99,16 @@ export default function CommentList({ postId }: Props) {
           >
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[#000080] text-sm">
-                  {c.owner_name || "ゲスト"}
-                </span>
+                {c.owner_id ? (
+                  <UserTooltip
+                    userId={c.owner_id}
+                    name={c.owner_name || "不明"}
+                  />
+                ) : (
+                  <span className="font-bold text-[#000080] text-sm">
+                    {c.owner_name || "ゲスト"}
+                  </span>
+                )}
                 {isOwner && (
                   <span className="text-[10px] bg-[#000080] text-white px-1.5 py-0.5 rounded uppercase font-bold">
                     You
@@ -108,7 +116,6 @@ export default function CommentList({ postId }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                {/* 更新日時の表示 */}
                 <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
                   {getRelativeTime(c.created_at)}
                   {c.updated_at &&

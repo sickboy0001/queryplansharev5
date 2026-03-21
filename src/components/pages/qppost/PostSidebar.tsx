@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getRelativeTime, displayDate } from "@/lib/utils/date";
+import { UserTooltip } from "@/components/organisms/UserTooltip";
 
 type Post = {
   id: string;
@@ -9,6 +10,8 @@ type Post = {
   is_public: number | boolean;
   created_at: string;
   updated_at: string;
+  owner_id: string | null;
+  owner_name?: string | null;
 };
 
 interface Props {
@@ -16,6 +19,13 @@ interface Props {
 }
 
 export default function PostSidebar({ post }: Props) {
+  const getPublicStatusLabel = (status: number | boolean) => {
+    const s = Number(status);
+    if (s === 2) return "公開";
+    if (s === 1) return "限定公開";
+    return "非公開";
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-2 border-[#000080]/30 shadow-md overflow-hidden">
@@ -25,6 +35,17 @@ export default function PostSidebar({ post }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4 bg-white text-slate-800">
+          {post.owner_id && (
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold text-slate-400 uppercase">
+                投稿者
+              </span>
+              <UserTooltip
+                userId={post.owner_id}
+                name={post.owner_name || "不明なユーザー"}
+              />
+            </div>
+          )}
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <span className="text-xs font-bold text-slate-400 uppercase">
               ステータス
@@ -40,7 +61,7 @@ export default function PostSidebar({ post }: Props) {
               公開設定
             </span>
             <span className="text-xs font-bold text-[#000080]">
-              {post.is_public ? "公開" : "非公開"}
+              {getPublicStatusLabel(post.is_public)}
             </span>
           </div>
           <div className="flex justify-between items-center">

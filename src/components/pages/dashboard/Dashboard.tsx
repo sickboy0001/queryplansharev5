@@ -3,37 +3,17 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getRelativeTime } from "@/lib/utils/date";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { AlertCircle, X } from "lucide-react";
-
-type Post = {
-  id: string;
-  title: string;
-  comment_markdown: string;
-  owner_name?: string;
-  updated_at: string;
-};
-
-type RecentComment = {
-  id: string;
-  post_id: string;
-  post_title: string;
-  comment_markdown: string;
-  owner_name?: string;
-  created_at: string;
-};
+import { PostCard, PostCardData } from "@/components/organisms/PostCard";
+import {
+  CommentCard,
+  CommentCardData,
+} from "@/components/organisms/CommentCard";
+import { UnlistedGuideDrawer } from "@/components/organisms/UnlistedGuideDrawer";
 
 interface Props {
-  posts: Post[];
-  recentComments: RecentComment[];
+  posts: PostCardData[];
+  recentComments: CommentCardData[];
 }
 
 export default function Dashboard({ posts, recentComments }: Props) {
@@ -44,7 +24,6 @@ export default function Dashboard({ posts, recentComments }: Props) {
   useEffect(() => {
     if (errorParam) {
       setShowError(true);
-      // URLからクエリパラメータを削除するが、コンポーネント内のエラー表示状態は維持する
       const url = new URL(window.location.href);
       url.searchParams.delete("error");
       window.history.replaceState({}, "", url.pathname);
@@ -78,27 +57,22 @@ export default function Dashboard({ posts, recentComments }: Props) {
           Query Plan Share
         </h1>
         <p className="text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-bold leading-relaxed">
-          Share, visualize, and analyze SQL Server execution plans. Empower your
-          query performance tuning today.
+          実行プランを共有、可視化して、クエリのチューニングを加速させましょう。
         </p>
         <div className="flex justify-center gap-6">
           <Link href="/qpposts/new">
-            <Button
-              size="lg"
-              className="bg-[#000080] text-white hover:bg-[#0000a0] font-black px-10 py-7 text-lg rounded-md shadow-xl transition-transform hover:scale-105"
-            >
+            <button className="bg-[#000080] text-white hover:bg-[#0000a0] font-black px-10 py-5 text-lg rounded-md shadow-xl transition-transform hover:scale-105">
               POST A PLAN
-            </Button>
+            </button>
           </Link>
           <Link href="/qpposts">
-            <Button
-              size="lg"
-              variant="outline"
-              className="bg-transparent border-4 border-[#000080] text-[#000080] hover:bg-[#000080]/5 font-black px-10 py-7 text-lg rounded-md shadow-xl transition-transform hover:scale-105"
-            >
+            <button className="bg-transparent border-4 border-[#000080] text-[#000080] hover:bg-[#000080]/5 font-black px-10 py-5 text-lg rounded-md shadow-xl transition-transform hover:scale-105">
               BROWSE GALLERY
-            </Button>
+            </button>
           </Link>
+        </div>
+        <div className="mt-8 flex justify-center">
+          <UnlistedGuideDrawer />
         </div>
       </section>
 
@@ -118,38 +92,7 @@ export default function Dashboard({ posts, recentComments }: Props) {
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {posts.map((post) => (
-              <Card
-                key={post.id}
-                className="flex flex-col border-2 border-[#000080]/20 shadow-md hover:shadow-xl transition-all bg-white rounded-lg overflow-hidden group"
-              >
-                <CardHeader className="bg-slate-50 border-b border-[#000080]/10 group-hover:bg-[#000080]/5 transition-colors">
-                  <CardTitle className="line-clamp-1 text-[#000080] font-bold">
-                    {post.title}
-                  </CardTitle>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                    <span className="text-[#000080]/60">
-                      BY {post.owner_name || "GUEST"}
-                    </span>
-                    <span>•</span>
-                    <span>{getRelativeTime(post.updated_at)}</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 p-5">
-                  <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed italic">
-                    {post.comment_markdown || "No description provided."}
-                  </p>
-                </CardContent>
-                <CardFooter className="p-5 pt-0">
-                  <Link href={`/qpposts/${post.id}`} className="w-full">
-                    <Button
-                      variant="outline"
-                      className="w-full border-2 border-[#000080] text-[#000080] hover:bg-[#000080] hover:text-white font-bold transition-all h-10 shadow-sm"
-                    >
-                      VIEW PLAN
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+              <PostCard key={post.id} post={post} />
             ))}
             {posts.length === 0 && (
               <div className="col-span-full py-24 text-center text-slate-300 border-4 border-dashed border-slate-100 rounded-xl bg-white/50">
@@ -170,26 +113,7 @@ export default function Dashboard({ posts, recentComments }: Props) {
           </div>
           <div className="space-y-4">
             {recentComments.map((comment) => (
-              <Link key={comment.id} href={`/qpposts/${comment.post_id}`}>
-                <Card className="border-2 border-[#000080]/10 hover:border-[#000080]/40 transition-all bg-white shadow-sm hover:shadow-lg overflow-hidden group">
-                  <CardHeader className="p-4 pb-2 bg-slate-50 border-b border-slate-100 group-hover:bg-[#000080]/5 transition-colors">
-                    <div className="text-[10px] font-bold text-[#000080]/60 uppercase tracking-widest truncate">
-                      RE: {comment.post_title}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-3">
-                    <p className="text-sm text-slate-700 line-clamp-2 italic leading-relaxed mb-3">
-                      "{comment.comment_markdown}"
-                    </p>
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                      <span className="text-[#000080]">
-                        {comment.owner_name || "GUEST"}
-                      </span>
-                      <span>{getRelativeTime(comment.created_at)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <CommentCard key={comment.id} comment={comment} />
             ))}
             {recentComments.length === 0 && (
               <div className="py-16 text-center text-slate-300 border-4 border-dashed border-slate-100 rounded-xl bg-white/50">

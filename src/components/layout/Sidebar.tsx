@@ -26,7 +26,7 @@ export default function Sidebar() {
         className={`
           fixed inset-y-0 left-0 z-50 w-64 border-r-4 border-[#4d4db2] bg-white flex flex-col h-full transition-transform duration-300 transform
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:z-30 lg:inset-y-auto overflow-y-auto
+          lg:translate-x-0 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:z-30 lg:inset-y-auto
         `}
       >
         <nav className="flex-1 py-6 px-4 space-y-2">

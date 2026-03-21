@@ -1,20 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { getRelativeTime } from "@/lib/utils/date";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-
-type Comment = {
-  id: string;
-  post_id: string;
-  post_title: string;
-  comment_markdown: string;
-  owner_name?: string;
-  created_at: string;
-};
+import {
+  CommentCard,
+  CommentCardData,
+} from "@/components/organisms/CommentCard";
 
 interface Props {
-  comments: Comment[];
+  comments: CommentCardData[];
 }
 
 export default function Comments({ comments }: Props) {
@@ -28,32 +21,11 @@ export default function Comments({ comments }: Props) {
 
       <div className="grid gap-6">
         {comments.map((comment) => (
-          <Link
+          <CommentCard
             key={comment.id}
-            href={`/qpposts/${comment.post_id}`}
-            className="block group"
-          >
-            <Card className="border-2 border-[#000080]/20 hover:border-[#000080]/50 transition-all bg-white shadow-sm hover:shadow-xl overflow-hidden">
-              <CardHeader className="bg-slate-50 py-4 px-6 border-b border-[#000080]/10 group-hover:bg-[#000080]/5 transition-colors">
-                <div className="text-[10px] font-bold text-[#000080]/60 uppercase tracking-[0.2em]">
-                  Target Plan: {comment.post_title}
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-slate-700 mb-6 leading-relaxed font-medium italic text-lg">
-                  "{comment.comment_markdown}"
-                </p>
-                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest border-t border-slate-50 pt-4">
-                  <span className="text-[#000080]">
-                    By {comment.owner_name || "GUEST"}
-                  </span>
-                  <span className="text-slate-400">
-                    {getRelativeTime(comment.created_at)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+            comment={comment}
+            showPostTitle={true}
+          />
         ))}
 
         {comments.length === 0 && (

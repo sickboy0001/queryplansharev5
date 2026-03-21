@@ -9,11 +9,9 @@ export default function MainLayout({
   return (
     <>
       <Header />
-      <div className="flex h-[calc(100vh-64px)] relative overflow-hidden">
+      <div className="flex relative min-h-[calc(100vh-64px)]">
         <Sidebar />
-        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden relative">
-          {children}
-        </main>
+        <main className="flex-1 min-w-0 relative">{children}</main>
       </div>
     </>
   );
