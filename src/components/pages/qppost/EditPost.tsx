@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +42,7 @@ type Post = {
   comment_markdown: string;
   is_active: number | boolean;
   is_public: number;
+  owner_id?: string | null;
   edit_token?: string | null;
 };
 
@@ -75,6 +76,16 @@ export default function EditPost({
   const [isUpdatingLink, setIsUpdatingLink] = useState(false);
   const [origin, setOrigin] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pwd = searchParams.get("pwd");
+  const [editPassword, setEditPassword] = useState(pwd || "");
+
+  // URLのpwdが変わったらstateを更新する
+  useEffect(() => {
+    if (pwd) {
+      setEditPassword(pwd);
+    }
+  }, [pwd]);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -87,7 +98,7 @@ export default function EditPost({
   const handleGetUnlistedLink = async () => {
     setIsUpdatingLink(true);
     try {
-      const link = await getOrCreateUnlistedLinkAction(post.id);
+      const link = await getOrCreateUnlistedLinkAction(post.id, pwd || "");
       setUnlistedLink(link as any);
       // 自動的に限定公開に切り替える（ユーザーの意図に合わせる）
       if (isPublic === 0) {
@@ -113,7 +124,7 @@ export default function EditPost({
     if (!unlistedLink) return;
     setIsUpdatingLink(true);
     try {
-      await addExpiryDaysAction(post.id, unlistedLink.id, days);
+      await addExpiryDaysAction(post.id, unlistedLink.id, days, pwd || "");
       const newExpiry = new Date(
         new Date(unlistedLink.expires_at).getTime() +
           days * 24 * 60 * 60 * 1000,
@@ -132,7 +143,7 @@ export default function EditPost({
     if (!unlistedLink) return;
     setIsUpdatingLink(true);
     try {
-      await resetExpiryAction(post.id, unlistedLink.id, 720); // Reset to 30 days
+      await resetExpiryAction(post.id, unlistedLink.id, 720, pwd || ""); // Reset to 30 days
       const newExpiry = new Date(
         new Date().getTime() + 720 * 60 * 60 * 1000,
       ).toISOString();
@@ -153,7 +164,7 @@ export default function EditPost({
       return;
     setIsUpdatingLink(true);
     try {
-      const link = await regenerateUnlistedLinkAction(post.id);
+      const link = await regenerateUnlistedLinkAction(post.id, pwd || "");
       setUnlistedLink(link as any);
       alert("新しい限定公開URLを発行しました。");
     } catch (err) {
@@ -178,15 +189,20 @@ export default function EditPost({
           comment_markdown: comment,
           is_public: isPublic,
           is_active: isActive,
+          edit_token: editPassword,
         }),
       });
 
       if (res.ok) {
         router.push(`/qpposts/${post.id}`);
         router.refresh();
+      } else {
+        const errorData = await res.json();
+        alert(`保存に失敗しました: ${errorData.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error(err);
+      alert("保存中にエラーが発生しました。");
     } finally {
       setIsSubmitting(false);
     }
@@ -204,8 +220,9 @@ export default function EditPost({
     setIsDeleting(true);
     try {
       const url = new URL(`/api/posts/${post.id}`, window.location.origin);
-      if (post.edit_token) {
-        url.searchParams.append("editToken", post.edit_token);
+      const token = editPassword || post.edit_token;
+      if (token) {
+        url.searchParams.append("editToken", token);
       }
 
       const res = await fetch(url.toString(), {
@@ -425,7 +442,7 @@ export default function EditPost({
                       type="button"
                       onClick={handleGetUnlistedLink}
                       disabled={isUpdatingLink}
-                      className="bg-[#000080] hover:bg-[#0000a0]"
+                      className="bg-[#000080] hover:bg-[#0000a0] text-white"
                     >
                       {isUpdatingLink ? (
                         <RefreshCw size={16} className="mr-2 animate-spin" />
@@ -589,7 +606,7 @@ export default function EditPost({
       {/* Sticky Quick Nav - Sidebar style */}
       <aside className="lg:w-64 order-1 lg:order-2">
         <div className="sticky top-0 z-40 bg-white p-6 rounded-xl border-2 border-[#000080]/20 shadow-lg space-y-6">
-          <h3 className="text-sm font-black text-[#000080] uppercase tracking-widest border-b-2 border-[#000080]/10 pb-2">
+          <h3 className="text-base font-black text-[#000080] uppercase tracking-widest border-b-2 border-[#000080]/10 pb-2">
             クイックメニュー
           </h3>
           <nav className="flex flex-col gap-2">
@@ -599,9 +616,9 @@ export default function EditPost({
                   .getElementById("section-title")
                   ?.scrollIntoView({ behavior: "smooth", block: "center" })
               }
-              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+              className="text-left text-sm font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
             >
-              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              <span className="w-2 h-2 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               タイトル
             </button>
             <button
@@ -610,9 +627,9 @@ export default function EditPost({
                   .getElementById("section-xml")
                   ?.scrollIntoView({ behavior: "smooth", block: "center" })
               }
-              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+              className="text-left text-sm font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
             >
-              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              <span className="w-2 h-2 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               QueryPlanXml
             </button>
             <button
@@ -621,9 +638,9 @@ export default function EditPost({
                   .getElementById("section-comment")
                   ?.scrollIntoView({ behavior: "smooth", block: "center" })
               }
-              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+              className="text-left text-sm font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
             >
-              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              <span className="w-2 h-2 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               プランの説明
             </button>
             <button
@@ -632,9 +649,9 @@ export default function EditPost({
                   .getElementById("section-unlisted")
                   ?.scrollIntoView({ behavior: "smooth", block: "center" })
               }
-              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+              className="text-left text-sm font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
             >
-              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              <span className="w-2 h-2 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               限定公開設定
             </button>
             <button
@@ -643,9 +660,9 @@ export default function EditPost({
                   .getElementById("section-save")
                   ?.scrollIntoView({ behavior: "smooth", block: "center" })
               }
-              className="text-left text-xs font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
+              className="text-left text-sm font-bold text-slate-600 hover:text-[#000080] hover:bg-[#000080]/5 px-3 py-2.5 rounded-lg transition-all flex items-center gap-2 group"
             >
-              <span className="w-1.5 h-1.5 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
+              <span className="w-2 h-2 bg-[#000080]/20 group-hover:bg-[#000080] rounded-full"></span>
               保存ボタンへ
             </button>
           </nav>

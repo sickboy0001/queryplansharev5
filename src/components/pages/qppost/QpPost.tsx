@@ -5,18 +5,32 @@ import { getRelativeTime, displayDate } from "@/lib/utils/date";
 import CommentSection from "./CommentSection";
 import PostSidebar from "./PostSidebar";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Edit,
   Table as TableIcon,
   Layout as LayoutIcon,
   Code,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/ui/markdown";
 import { PlanTable } from "@/components/pages/queryplanview/PlanTable";
 import { PlanXml } from "@/components/pages/queryplanview/PlanXml";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { verifyPostPasswordAction } from "@/lib/actions/qppost";
 
 type Post = {
   id: string;
@@ -26,9 +40,10 @@ type Post = {
   owner_id: string | null;
   owner_name?: string;
   is_active: number | boolean;
-  is_public: number | boolean;
+  is_public: number;
   created_at: string;
   updated_at: string;
+  hasPassword?: boolean;
 };
 
 interface Props {
@@ -37,7 +52,42 @@ interface Props {
 
 export default function QpPost({ post }: Props) {
   const { data: session } = useSession();
+  const router = useRouter();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [error, setError] = useState("");
+
   const isOwner = session?.user?.id === post.owner_id;
+  const isGuestPost = !post.owner_id && post.hasPassword;
+  const canEdit = isOwner || isGuestPost;
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    if (isOwner) return; // Link will handle it
+    e.preventDefault();
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleVerifyPassword = async () => {
+    setIsVerifying(true);
+    setError("");
+    try {
+      const isValid = await verifyPostPasswordAction(post.id, password);
+      if (isValid) {
+        // セッションストレージなどに一時的に保存するか、URLクエリで渡す
+        // ここではURLクエリで渡す（EditPost側で検証する）
+        router.push(
+          `/qpposts/${post.id}/edit?pwd=${encodeURIComponent(password)}`,
+        );
+      } else {
+        setError("パスワードが正しくありません。");
+      }
+    } catch (err) {
+      setError("エラーが発生しました。");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   return (
     <div className="container py-10 px-4 max-w-7xl mx-auto">
@@ -48,17 +98,31 @@ export default function QpPost({ post }: Props) {
             <h1 className="text-3xl font-extrabold text-[#000080]">
               {post.title}
             </h1>
-            {isOwner && (
-              <Link href={`/qpposts/${post.id}/edit`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-[#000080] text-[#000080] hover:bg-[#000080] hover:text-white font-bold gap-2 shadow-sm transition-all"
-                >
-                  <Edit size={16} />
-                  編集する
-                </Button>
-              </Link>
+            {canEdit && (
+              <>
+                {isOwner ? (
+                  <Link href={`/qpposts/${post.id}/edit`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-2 border-[#000080] text-[#000080] hover:bg-[#000080] hover:text-white font-bold gap-2 shadow-sm transition-all"
+                    >
+                      <Edit size={16} />
+                      編集する
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-2 border-[#000080] text-[#000080] hover:bg-[#000080] hover:text-white font-bold gap-2 shadow-sm transition-all"
+                    onClick={handleEditClick}
+                  >
+                    <Edit size={16} />
+                    編集する
+                  </Button>
+                )}
+              </>
             )}
           </div>
           <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
@@ -153,6 +217,55 @@ export default function QpPost({ post }: Props) {
           <PostSidebar post={post} />
         </div>
       </div>
+
+      <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+        <DialogContent className="sm:max-w-md bg-white border-2 border-[#000080]/20 shadow-2xl p-0 gap-0 overflow-hidden">
+          <div className="p-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[#000080]">
+                <Lock size={20} /> 編集パスワードの確認
+              </DialogTitle>
+              <DialogDescription className="pt-2">
+                この投稿を編集するには、投稿時に設定したパスワードを入力してください。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-password">パスワード</Label>
+                <Input
+                  id="edit-password"
+                  type="text"
+                  placeholder="パスワードを入力"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handleVerifyPassword()}
+                  className="border-2 focus:border-[#000080] focus:ring-0"
+                />
+                {error && (
+                  <p className="text-xs font-bold text-red-500">{error}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="ghost"
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="font-bold"
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={handleVerifyPassword}
+                disabled={isVerifying || !password}
+                className="bg-[#000080] hover:bg-[#0000a0] text-white font-bold px-8"
+              >
+                {isVerifying ? "認証中..." : "認証して編集へ"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

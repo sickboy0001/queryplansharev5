@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       query_plan_xml: data.query_plan_xml,
       comment_markdown: data.comment_markdown || "",
       is_public: data.is_public !== false,
+      password: data.password,
     });
 
     return NextResponse.json({ id, editToken }, { status: 201 });

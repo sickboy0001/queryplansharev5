@@ -1,12 +1,18 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { PostCard, PostCardData } from "@/components/organisms/PostCard";
+import {
+  getAllPostsForAdminAction,
+  getPostsAction,
+  getMyAllPostsAction,
+} from "@/lib/actions/qppost";
 
 interface Props {
-  posts: PostCardData[];
+  posts?: PostCardData[];
   myPosts?: PostCardData[];
   ownerId?: string;
   currentUserId?: string;
@@ -14,28 +20,98 @@ interface Props {
 }
 
 export default function QpPostList({
-  posts,
-  myPosts = [],
+  posts: initialPosts = [],
+  myPosts: initialMyPosts = [],
   ownerId,
   currentUserId,
   isAdmin,
 }: Props) {
-  const PostGrid = ({ postsToDisplay }: { postsToDisplay: PostCardData[] }) => (
+  const [posts, setPosts] = useState<PostCardData[]>(initialPosts);
+  const [myPosts, setMyPosts] = useState<PostCardData[]>(initialMyPosts);
+  const [adminPosts, setAdminPosts] = useState<PostCardData[]>([]);
+
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [isLoadingMine, setIsLoadingMine] = useState(false);
+  const [isLoadingAdmin, setIsLoadingAdmin] = useState(false);
+
+  const [activeTab, setActiveTab] = useState("all");
+
+  useEffect(() => {
+    if (activeTab === "all" && posts.length === 0) {
+      loadAllPosts();
+    } else if (activeTab === "mine" && myPosts.length === 0 && currentUserId) {
+      loadMyPosts();
+    } else if (activeTab === "admin" && adminPosts.length === 0 && isAdmin) {
+      loadAdminPosts();
+    }
+  }, [activeTab, isAdmin, currentUserId]);
+
+  const loadAllPosts = async () => {
+    setIsLoadingAll(true);
+    try {
+      const data = await getPostsAction({ ownerId });
+      setPosts(data as any);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  };
+
+  const loadMyPosts = async () => {
+    setIsLoadingMine(true);
+    try {
+      const data = await getMyAllPostsAction();
+      setMyPosts(data as any);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingMine(false);
+    }
+  };
+
+  const loadAdminPosts = async () => {
+    setIsLoadingAdmin(true);
+    try {
+      const data = await getAllPostsForAdminAction();
+      setAdminPosts(data as any);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingAdmin(false);
+    }
+  };
+
+  const PostGrid = ({
+    postsToDisplay,
+    loading = false,
+  }: {
+    postsToDisplay: PostCardData[];
+    loading?: boolean;
+  }) => (
     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-      {postsToDisplay.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          currentUserId={currentUserId}
-          isAdmin={isAdmin}
-        />
-      ))}
-      {postsToDisplay.length === 0 && (
-        <div className="col-span-full py-32 text-center text-slate-300 border-4 border-dashed border-slate-100 rounded-2xl bg-white/50">
-          <p className="text-xl font-bold uppercase tracking-widest">
-            No plans found.
-          </p>
+      {loading ? (
+        <div className="col-span-full py-32 text-center text-slate-400">
+          読み込み中...
         </div>
+      ) : (
+        <>
+          {postsToDisplay.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+            />
+          ))}
+          {postsToDisplay.length === 0 && (
+            <div className="col-span-full py-32 text-center text-slate-300 border-4 border-dashed border-slate-100 rounded-2xl bg-white/50">
+              <p className="text-xl font-bold uppercase tracking-widest">
+                No plans found.
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -54,7 +130,12 @@ export default function QpPostList({
       </div>
 
       {currentUserId ? (
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs
+          defaultValue="all"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
           <TabsList className="mb-8 bg-slate-100 p-1 border-2 border-[#000080]/10">
             <TabsTrigger
               value="all"
@@ -68,16 +149,29 @@ export default function QpPostList({
             >
               投稿分
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger
+                value="admin"
+                className="font-bold data-[state=active]:bg-[#000080] data-[state=active]:text-white"
+              >
+                すべて (管理者)
+              </TabsTrigger>
+            )}
           </TabsList>
           <TabsContent value="all">
-            <PostGrid postsToDisplay={posts} />
+            <PostGrid postsToDisplay={posts} loading={isLoadingAll} />
           </TabsContent>
           <TabsContent value="mine">
-            <PostGrid postsToDisplay={myPosts} />
+            <PostGrid postsToDisplay={myPosts} loading={isLoadingMine} />
           </TabsContent>
+          {isAdmin && (
+            <TabsContent value="admin">
+              <PostGrid postsToDisplay={adminPosts} loading={isLoadingAdmin} />
+            </TabsContent>
+          )}
         </Tabs>
       ) : (
-        <PostGrid postsToDisplay={posts} />
+        <PostGrid postsToDisplay={posts} loading={isLoadingAll} />
       )}
     </div>
   );

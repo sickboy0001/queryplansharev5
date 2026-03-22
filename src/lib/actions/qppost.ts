@@ -7,26 +7,74 @@ import {
   updateUnlistedLinkExpiry,
   resetUnlistedLinkExpiry,
   getPostById,
+  getAllPostsForAdmin,
+  getPosts,
+  getMyAllPosts,
 } from "@/service/qppost-service";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/service/user-service";
+import bcrypt from "bcryptjs";
 
-async function checkAuth(postId: string) {
+export async function getPostsAction(options: { ownerId?: string } = {}) {
+  const posts = await getPosts(options);
+  return JSON.parse(JSON.stringify(posts));
+}
+
+export async function getMyAllPostsAction() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  const posts = await getMyAllPosts(session.user.id);
+  return JSON.parse(JSON.stringify(posts));
+}
+
+export async function getAllPostsForAdminAction() {
+  const session = await auth();
+  const isAdmin = isAdminEmail(session?.user?.email);
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const posts = await getAllPostsForAdmin();
+  return JSON.parse(JSON.stringify(posts));
+}
+
+async function checkAuth(postId: string, editToken?: string) {
   const session = await auth();
   const post = await getPostById(postId);
   if (!post) throw new Error("Post not found");
 
   const isAdmin = isAdminEmail(session?.user?.email);
-  const isOwner = session?.user?.id && post.owner_id === session.user.id;
+  const isOwner = !!(
+    session?.user?.id &&
+    post.owner_id &&
+    String(post.owner_id) === String(session.user.id)
+  );
+  const isGuestWithValidPwd = !!(
+    editToken &&
+    post.edit_token &&
+    (await bcrypt.compare(editToken, post.edit_token))
+  );
 
-  if (!isAdmin && !isOwner) {
+  if (!isAdmin && !isOwner && !isGuestWithValidPwd) {
     throw new Error("Unauthorized");
   }
 }
 
-export async function getOrCreateUnlistedLinkAction(postId: string) {
-  await checkAuth(postId);
+export async function verifyPostPasswordAction(
+  postId: string,
+  password: string,
+) {
+  const post = await getPostById(postId);
+  if (!post || !post.edit_token) return false;
+
+  const isMatch = await bcrypt.compare(password, post.edit_token);
+  return isMatch;
+}
+
+export async function getOrCreateUnlistedLinkAction(
+  postId: string,
+  editToken?: string,
+) {
+  await checkAuth(postId, editToken);
 
   let link = await getUnlistedLinkByPostId(postId);
   if (!link) {
@@ -42,14 +90,18 @@ export async function addExpiryDaysAction(
   postId: string,
   token: string,
   days: number,
+  editToken?: string,
 ) {
-  await checkAuth(postId);
+  await checkAuth(postId, editToken);
   await updateUnlistedLinkExpiry(token, days);
   revalidatePath(`/qpposts/${postId}/edit`);
 }
 
-export async function regenerateUnlistedLinkAction(postId: string) {
-  await checkAuth(postId);
+export async function regenerateUnlistedLinkAction(
+  postId: string,
+  editToken?: string,
+) {
+  await checkAuth(postId, editToken);
 
   await deleteUnlistedLinkByPostId(postId);
   const link = await createUnlistedLink(postId, 720);
@@ -62,8 +114,9 @@ export async function resetExpiryAction(
   postId: string,
   token: string,
   hours: number = 720,
+  editToken?: string,
 ) {
-  await checkAuth(postId);
+  await checkAuth(postId, editToken);
   await resetUnlistedLinkExpiry(token, hours);
   revalidatePath(`/qpposts/${postId}/edit`);
 }

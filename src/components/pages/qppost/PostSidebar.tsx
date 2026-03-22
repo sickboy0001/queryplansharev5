@@ -7,7 +7,7 @@ import { UserTooltip } from "@/components/organisms/UserTooltip";
 type Post = {
   id: string;
   is_active: number | boolean;
-  is_public: number | boolean;
+  is_public: number;
   created_at: string;
   updated_at: string;
   owner_id: string | null;

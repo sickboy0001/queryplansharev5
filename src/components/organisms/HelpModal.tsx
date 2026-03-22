@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { HelpCircle, BookOpen, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // 表示名とファイル名のマッピング
 const HELP_FILES = [
@@ -22,7 +23,7 @@ const HELP_FILES = [
   { slug: "05_markdown", label: "Markdown" },
 ];
 
-export function HelpModal() {
+export function HelpModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentSlug, setCurrentSlug] = useState<string>("00_index");
   const [cache, setCache] = useState<Record<string, string>>({});
@@ -68,34 +69,41 @@ export function HelpModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-slate-400 hover:text-[#000080]"
-        >
-          <HelpCircle size={16} />
-          ヘルプ
-        </Button>
+        {children || (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2 text-slate-400 hover:text-[#000080] font-bold"
+          >
+            <HelpCircle size={16} />
+            ヘルプ
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent
-        className="max-w-[1000px] w-[95vw] max-h-[85vh] h-full flex flex-col p-0 overflow-hidden border-none shadow-2xl bg-white fixed"
+        className="max-w-[1100px] w-[95vw] max-h-[90vh] h-full flex flex-col p-0 overflow-hidden border-none shadow-2xl bg-white fixed rounded-none"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
-        <DialogHeader className="p-6 border-b border-slate-100 shrink-0 bg-white">
-          <DialogTitle className="text-xl font-black text-[#000080] uppercase flex items-center gap-2">
-            <BookOpen className="text-[#000080]" />
-            Help & Documentation
-          </DialogTitle>
-          <nav className="flex flex-wrap gap-2 overflow-x-auto mt-4 pb-1 scrollbar-hide">
+        {/* Top Accent Line (LP style) */}
+        <div className="h-2 w-full bg-[#000080] shrink-0" />
+
+        <DialogHeader className="px-8 py-8 border-b border-slate-100 shrink-0 bg-white">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-3xl md:text-4xl font-black text-[#000080] uppercase flex items-center gap-4 tracking-tighter">
+              <BookOpen size={40} strokeWidth={3} className="text-[#000080]" />
+              Help & Docs
+            </DialogTitle>
+          </div>
+          <nav className="flex gap-2 overflow-x-auto mt-8 pb-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
             {HELP_FILES.map((file) => (
               <button
                 key={file.slug}
                 onClick={() => setCurrentSlug(file.slug)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap border ${
+                className={`px-6 py-3 text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 ${
                   file.slug === currentSlug
-                    ? "bg-[#000080] border-[#000080] text-white shadow-md scale-105"
-                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#000080]/30 hover:text-[#000080]"
+                    ? "bg-[#000080] border-[#000080] text-white shadow-xl translate-y-[-2px]"
+                    : "bg-transparent border-slate-200 text-slate-400 hover:border-[#000080]/30 hover:text-[#000080] hover:bg-[#000080]/5"
                 }`}
               >
                 {file.label}
@@ -104,17 +112,47 @@ export function HelpModal() {
           </nav>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 min-h-0">
-          <div className="p-6 md:p-10 bg-white mx-auto max-w-4xl min-h-full">
-            {!currentContent && isPreloading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 text-[#000080] animate-spin" />
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 min-h-0">
+          <div className="py-12 px-4 md:px-12">
+            <div className="bg-white mx-auto max-w-4xl min-h-[60vh] rounded-[2rem] border-2 border-[#000080]/5 shadow-2xl overflow-hidden relative">
+              {/* Decorative circle like LP */}
+              <div className="absolute top-[-5%] right-[-5%] w-32 h-32 border-[10px] border-[#000080]/5 rounded-full pointer-events-none" />
+
+              <div className="p-8 md:p-16 relative z-10">
+                {!currentContent && isPreloading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-12 h-12 text-[#000080] animate-spin" />
+                  </div>
+                ) : (
+                  <article
+                    className="prose prose-slate prose-blue max-w-none 
+                    prose-headings:text-[#000080] prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tighter
+                    prose-p:text-slate-600 prose-p:font-bold prose-p:leading-relaxed
+                    prose-th:bg-[#000080] prose-th:text-white prose-th:px-6 prose-th:py-4 prose-th:font-black prose-th:uppercase prose-th:tracking-widest prose-th:text-xs prose-th:border-none
+                    prose-td:px-6 prose-td:py-5 prose-td:font-bold prose-td:border-b prose-td:border-slate-100
+                    prose-table:border-none prose-table:shadow-xl prose-table:rounded-xl prose-table:overflow-hidden
+                    prose-img:rounded-3xl prose-img:shadow-2xl
+                    prose-code:bg-slate-100 prose-code:text-[#000080] prose-code:px-2 prose-code:py-1 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none prose-code:font-bold"
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {currentContent}
+                    </ReactMarkdown>
+                  </article>
+                )}
               </div>
-            ) : (
-              <article className="prose prose-slate prose-blue max-w-none prose-headings:text-[#000080] prose-headings:font-black">
-                <ReactMarkdown>{currentContent}</ReactMarkdown>
-              </article>
-            )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer style matching LP theme */}
+        <div className="px-8 py-5 bg-white border-t border-slate-100 flex justify-between items-center shrink-0">
+          <div className="text-[10px] font-black text-[#000080]/30 uppercase tracking-[0.3em]">
+            &copy; 2026 Query Plan Share / Documentation
+          </div>
+          <div className="flex gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#000080]/10" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#000080]/20" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[#000080]/40" />
           </div>
         </div>
       </DialogContent>

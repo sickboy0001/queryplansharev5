@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   List,
@@ -12,6 +13,12 @@ import { useSidebar } from "./SidebarProvider";
 
 export default function Sidebar() {
   const { isOpen, close } = useSidebar();
+  const pathname = usePathname();
+
+  // トップページ（LP）ではサイドバーを表示しない
+  if (pathname === "/") {
+    return null;
+  }
 
   return (
     <>

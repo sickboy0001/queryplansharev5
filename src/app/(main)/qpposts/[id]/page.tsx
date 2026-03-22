@@ -54,6 +54,9 @@ export default async function PostDetailPage({
 
   // Ensure plain object for client component
   const plainPost = JSON.parse(JSON.stringify(post));
+  // Security: Remove edit_token but keep flag
+  plainPost.hasPassword = !!post.edit_token;
+  delete plainPost.edit_token;
 
   return <QpPost post={plainPost} />;
 }

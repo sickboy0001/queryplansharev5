@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,18 +15,36 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { AlertCircle, Lock } from "lucide-react";
 
 export default function NewPost() {
+  const { data: session, status } = useSession();
   const [title, setTitle] = useState("");
   const [xml, setXml] = useState("");
   const [comment, setComment] = useState("");
+  const [password, setPassword] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
+  const isGuest = status === "unauthenticated" || !session?.user;
+  const isLoading = status === "loading";
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 px-4 max-w-4xl mx-auto flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#000080]"></div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!xml || !title) return;
+    if (isGuest && !password) {
+      alert("ゲスト投稿にはパスワードが必要です。");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -36,6 +55,7 @@ export default function NewPost() {
           query_plan_xml: xml,
           comment_markdown: comment,
           is_public: isPublic,
+          password: isGuest ? password : null,
         }),
       });
 
@@ -60,6 +80,23 @@ export default function NewPost() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6 pt-8">
+            {isGuest && (
+              <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4">
+                <AlertCircle
+                  className="text-amber-600 shrink-0 mt-0.5"
+                  size={20}
+                />
+                <div className="space-y-1">
+                  <p className="font-black text-amber-900 text-sm">
+                    ゲスト投稿の制限
+                  </p>
+                  <p className="text-amber-700 text-xs font-bold leading-relaxed">
+                    ログインせずに投稿する場合、後で編集・削除を行うためのパスワード設定が必須です。
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label
                 htmlFor="title"
@@ -76,6 +113,26 @@ export default function NewPost() {
                 required
               />
             </div>
+
+            {isGuest && (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="password"
+                  className="font-bold text-[#000080] text-sm uppercase tracking-wider flex items-center gap-2"
+                >
+                  <Lock size={14} /> 編集用パスワード
+                </Label>
+                <Input
+                  id="password"
+                  type="text"
+                  placeholder="パスワードを入力してください（マスクされません）"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="border-2 focus:border-[#000080] focus:ring-0 transition-all rounded-lg bg-white"
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label
