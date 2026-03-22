@@ -20,9 +20,8 @@ export default async function Header() {
             className="font-black text-2xl tracking-tighter hover:opacity-70 transition-opacity flex items-center gap-2"
           >
             <span className="bg-[#4d4db2] text-white px-2 py-0.5 rounded italic">
-              QPS
+              QPS5
             </span>
-            <span className="hidden sm:inline">qps5</span>
           </Link>
         </div>
         <div className="flex items-center gap-6">
