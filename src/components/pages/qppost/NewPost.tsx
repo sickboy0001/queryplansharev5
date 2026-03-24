@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,7 +43,7 @@ export default function NewPost() {
     e.preventDefault();
     if (!xml || !title) return;
     if (isGuest && !password) {
-      alert("ゲスト投稿にはパスワードが必要です。");
+      toast.error("ゲスト投稿にはパスワードが必要です。");
       return;
     }
 

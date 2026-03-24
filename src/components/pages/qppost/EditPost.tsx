@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +34,7 @@ import {
   addExpiryDaysAction,
   regenerateUnlistedLinkAction,
   resetExpiryAction,
+  deleteUnlistedLinkAction,
 } from "@/lib/actions/qppost";
 
 type Post = {
@@ -104,10 +106,10 @@ export default function EditPost({
       if (isPublic === 0) {
         setIsPublic(1);
       }
-      alert("限定公開URLを取得しました。");
+      toast.success("限定公開URLを取得しました。");
     } catch (err) {
       console.error(err);
-      alert("限定公開URLの取得に失敗しました。");
+      toast.error("限定公開URLの取得に失敗しました。");
     } finally {
       setIsUpdatingLink(false);
     }
@@ -117,7 +119,7 @@ export default function EditPost({
     if (!unlistedLink) return;
     const url = `${origin}/qpposts/unlisted/${unlistedLink.id}`;
     navigator.clipboard.writeText(url);
-    alert(`クリップボードにコピーしました: ${url}`);
+    toast.success("クリップボードにコピーしました");
   };
 
   const handleAddExpiry = async (days: number) => {
@@ -130,10 +132,10 @@ export default function EditPost({
           days * 24 * 60 * 60 * 1000,
       ).toISOString();
       setUnlistedLink({ ...unlistedLink, expires_at: newExpiry });
-      alert(`${days}日分延長しました。`);
+      toast.success(`${days}日分延長しました。`);
     } catch (err) {
       console.error(err);
-      alert("期限の更新に失敗しました。");
+      toast.error("期限の更新に失敗しました。");
     } finally {
       setIsUpdatingLink(false);
     }
@@ -148,10 +150,10 @@ export default function EditPost({
         new Date().getTime() + 720 * 60 * 60 * 1000,
       ).toISOString();
       setUnlistedLink({ ...unlistedLink, expires_at: newExpiry });
-      alert("本日より30日間に設定されました。");
+      toast.success("本日より30日間に設定されました。");
     } catch (err) {
       console.error(err);
-      alert("期限の更新に失敗しました。");
+      toast.error("期限の更新に失敗しました。");
     } finally {
       setIsUpdatingLink(false);
     }
@@ -166,10 +168,34 @@ export default function EditPost({
     try {
       const link = await regenerateUnlistedLinkAction(post.id, pwd || "");
       setUnlistedLink(link as any);
-      alert("新しい限定公開URLを発行しました。");
+      toast.success("新しい限定公開URLを発行しました。");
     } catch (err) {
       console.error(err);
-      alert("URLの再生成に失敗しました。");
+      toast.error("URLの再生成に失敗しました。");
+    } finally {
+      setIsUpdatingLink(false);
+    }
+  };
+
+  const handleDeleteUnlistedLink = async () => {
+    if (
+      !confirm(
+        "限定公開URLを削除します。現在のURLは無効になります。よろしいですか？",
+      )
+    )
+      return;
+    setIsUpdatingLink(true);
+    try {
+      await deleteUnlistedLinkAction(post.id, pwd || "");
+      setUnlistedLink(null);
+      // 非公開に切り替える（推奨）
+      if (isPublic === 1) {
+        setIsPublic(0);
+      }
+      toast.success("限定公開URLを削除しました。");
+    } catch (err) {
+      console.error(err);
+      toast.error("URLの削除に失敗しました。");
     } finally {
       setIsUpdatingLink(false);
     }
@@ -198,11 +224,13 @@ export default function EditPost({
         router.refresh();
       } else {
         const errorData = await res.json();
-        alert(`保存に失敗しました: ${errorData.error || "Unknown error"}`);
+        toast.error(
+          `保存に失敗しました: ${errorData.error || "Unknown error"}`,
+        );
       }
     } catch (err) {
       console.error(err);
-      alert("保存中にエラーが発生しました。");
+      toast.error("保存中にエラーが発生しました。");
     } finally {
       setIsSubmitting(false);
     }
@@ -234,11 +262,13 @@ export default function EditPost({
         router.refresh();
       } else {
         const errorData = await res.json();
-        alert(`削除に失敗しました: ${errorData.error || "Unknown error"}`);
+        toast.error(
+          `削除に失敗しました: ${errorData.error || "Unknown error"}`,
+        );
       }
     } catch (err) {
       console.error(err);
-      alert("削除中にエラーが発生しました。");
+      toast.error("削除中にエラーが発生しました。");
     } finally {
       setIsDeleting(false);
     }
@@ -482,20 +512,31 @@ export default function EditPost({
                           </Button>
                         </div>
                       </div>
-                      <div className="shrink-0">
+                      <div className="shrink-0 flex items-center gap-2">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={handleRegenerateLink}
                           disabled={isUpdatingLink}
-                          className="text-slate-500 hover:text-red-600"
+                          className="text-slate-500 hover:text-[#000080]"
                         >
                           <RefreshCw
                             size={14}
                             className={`mr-1 ${isUpdatingLink ? "animate-spin" : ""}`}
                           />
                           再採番
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDeleteUnlistedLink}
+                          disabled={isUpdatingLink}
+                          className="text-slate-500 hover:text-red-600"
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          削除
                         </Button>
                       </div>
                     </div>

@@ -120,3 +120,12 @@ export async function resetExpiryAction(
   await resetUnlistedLinkExpiry(token, hours);
   revalidatePath(`/qpposts/${postId}/edit`);
 }
+
+export async function deleteUnlistedLinkAction(
+  postId: string,
+  editToken?: string,
+) {
+  await checkAuth(postId, editToken);
+  await deleteUnlistedLinkByPostId(postId);
+  revalidatePath(`/qpposts/${postId}/edit`);
+}
