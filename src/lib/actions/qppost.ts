@@ -15,6 +15,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/service/user-service";
 import bcrypt from "bcryptjs";
+import { verifyGuestEditCookie } from "@/lib/guest-auth";
+import { cookies } from "next/headers";
 
 export async function getPostsAction(options: { ownerId?: string } = {}) {
   const posts = await getPosts(options);
@@ -48,13 +50,19 @@ async function checkAuth(postId: string, editToken?: string) {
     post.owner_id &&
     String(post.owner_id) === String(session.user.id)
   );
+
+  // 古い editToken 方式（下位互換）
   const isGuestWithValidPwd = !!(
     editToken &&
     post.edit_token &&
     (await bcrypt.compare(editToken, post.edit_token))
   );
 
-  if (!isAdmin && !isOwner && !isGuestWithValidPwd) {
+  // 新しい JWT 方式
+  const guestPayload = await verifyGuestEditCookie(postId);
+  const isGuestWithJwt = !!(guestPayload && guestPayload.postId === postId);
+
+  if (!isAdmin && !isOwner && !isGuestWithValidPwd && !isGuestWithJwt) {
     throw new Error("Unauthorized");
   }
 }

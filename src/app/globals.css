@@ -42,6 +42,21 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    position: relative;
+  }
+
+  /* Dialog Overlay background fix */
+  .radix-dialog-overlay,
+  [data-radix-dialog-overlay] {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+  
+  /* Ensure overlay is visible when dialog is open */
+  [data-state="open"][data-radix-dialog-overlay],
+  .radix-dialog-overlay[data-state="open"] {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    opacity: 1 !important;
   }
 
   .prose ul {

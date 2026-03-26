@@ -17,12 +17,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle, Lock } from "lucide-react";
+import {
+  DEFAULT_POST_TITLE,
+  DEFAULT_POST_COMMENT,
+} from "@/constants/post-defaults";
 
 export default function NewPost() {
   const { data: session, status } = useSession();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(DEFAULT_POST_TITLE);
   const [xml, setXml] = useState("");
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState(DEFAULT_POST_COMMENT);
   const [password, setPassword] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);

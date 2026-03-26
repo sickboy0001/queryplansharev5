@@ -3,17 +3,14 @@ import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import EditPost from "@/components/pages/qppost/EditPost";
 import { isAdminEmail } from "@/service/user-service";
-import bcrypt from "bcryptjs";
+import { verifyGuestEditCookie } from "@/lib/guest-auth";
 
 export default async function EditPostPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ pwd?: string }>;
 }) {
   const { id } = await params;
-  const { pwd } = await searchParams;
   const session = await auth();
   const post = await getPostById(id);
 
@@ -24,10 +21,11 @@ export default async function EditPostPage({
   // Check if authorized
   const isAdmin = isAdminEmail(session?.user?.email);
   const isOwner = session?.user?.id && post.owner_id === session.user.id;
-  const isGuestWithValidPwd =
-    pwd && post.edit_token && (await bcrypt.compare(pwd, post.edit_token));
 
-  if (!isAdmin && !isOwner && !isGuestWithValidPwd) {
+  // JWT でゲスト認証
+  const isGuestWithValidToken = await verifyGuestEditCookie(id);
+
+  if (!isAdmin && !isOwner && !isGuestWithValidToken) {
     redirect("/dashboard?error=unauthorized");
   }
 

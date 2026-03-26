@@ -56,7 +56,8 @@ export default async function PostDetailPage({
   const plainPost = JSON.parse(JSON.stringify(post));
   // Security: Remove edit_token but keep flag
   plainPost.hasPassword = !!post.edit_token;
+  plainPost.isAdmin = isAdmin;
   delete plainPost.edit_token;
 
-  return <QpPost post={plainPost} />;
+  return <QpPost post={plainPost} isAdmin={isAdmin} />;
 }

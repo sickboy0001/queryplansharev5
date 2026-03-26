@@ -88,9 +88,6 @@ export default function Dashboard({ posts, recentComments }: Props) {
               BROWSE GALLERY
             </button>
           </Link>
-          <div className="pt-2 flex justify-center lg:justify-end">
-            <UnlistedGuideDrawer />
-          </div>
         </div>
       </section>
 

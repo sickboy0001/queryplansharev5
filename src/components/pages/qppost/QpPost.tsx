@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { verifyPostPasswordAction } from "@/lib/actions/qppost";
 
 type Post = {
   id: string;
@@ -44,13 +43,15 @@ type Post = {
   created_at: string;
   updated_at: string;
   hasPassword?: boolean;
+  isAdmin?: boolean;
 };
 
 interface Props {
   post: Post;
+  isAdmin?: boolean;
 }
 
-export default function QpPost({ post }: Props) {
+export default function QpPost({ post, isAdmin }: Props) {
   const { data: session } = useSession();
   const router = useRouter();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -60,10 +61,11 @@ export default function QpPost({ post }: Props) {
 
   const isOwner = session?.user?.id === post.owner_id;
   const isGuestPost = !post.owner_id && post.hasPassword;
-  const canEdit = isOwner || isGuestPost;
+  // Admin can edit without password
+  const canEdit = isOwner || isGuestPost || isAdmin;
 
   const handleEditClick = (e: React.MouseEvent) => {
-    if (isOwner) return; // Link will handle it
+    if (isOwner || isAdmin) return; // Link will handle it
     e.preventDefault();
     setIsPasswordModalOpen(true);
   };
@@ -72,15 +74,19 @@ export default function QpPost({ post }: Props) {
     setIsVerifying(true);
     setError("");
     try {
-      const isValid = await verifyPostPasswordAction(post.id, password);
-      if (isValid) {
-        // セッションストレージなどに一時的に保存するか、URLクエリで渡す
-        // ここではURLクエリで渡す（EditPost側で検証する）
-        router.push(
-          `/qpposts/${post.id}/edit?pwd=${encodeURIComponent(password)}`,
-        );
+      // API を呼び出して JWT Cookie を発行させる
+      const res = await fetch("/api/guest-auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id, password }),
+      });
+
+      if (res.ok) {
+        // JWT Cookie が設定されたので、編集ページへリダイレクト
+        router.push(`/qpposts/${post.id}/edit`);
       } else {
-        setError("パスワードが正しくありません。");
+        const data = await res.json();
+        setError(data.error || "パスワードが正しくありません。");
       }
     } catch (err) {
       setError("エラーが発生しました。");
@@ -100,7 +106,7 @@ export default function QpPost({ post }: Props) {
             </h1>
             {canEdit && (
               <>
-                {isOwner ? (
+                {isOwner || isAdmin ? (
                   <Link href={`/qpposts/${post.id}/edit`}>
                     <Button
                       variant="outline"
@@ -127,11 +133,11 @@ export default function QpPost({ post }: Props) {
           </div>
           <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
             <span className="bg-blue-50 text-[#000080] px-3 py-1 rounded-full border border-[#000080]/20">
-              投稿者: {post.owner_name || "ゲスト"}
+              投稿者：{post.owner_name || "ゲスト"}
             </span>
             <span>•</span>
             <span className="text-[#000080]/70">
-              登録日: {getRelativeTime(post.created_at)}
+              登録日：{getRelativeTime(post.created_at)}
               {post.updated_at &&
                 post.updated_at !== post.created_at &&
                 ` (update: ${displayDate(post.updated_at)})`}
@@ -167,7 +173,7 @@ export default function QpPost({ post }: Props) {
                   className="data-[state=active]:bg-white data-[state=active]:text-[#000080] font-bold flex items-center gap-2"
                 >
                   <Code size={14} />
-                  XML表示
+                  XML 表示
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -223,7 +229,8 @@ export default function QpPost({ post }: Props) {
           <div className="p-6">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-[#000080]">
-                <Lock size={20} /> 編集パスワードの確認
+                <Lock size={20} />
+                編集パスワードの確認
               </DialogTitle>
               <DialogDescription className="pt-2">
                 この投稿を編集するには、投稿時に設定したパスワードを入力してください。
@@ -234,7 +241,7 @@ export default function QpPost({ post }: Props) {
                 <Label htmlFor="edit-password">パスワード</Label>
                 <Input
                   id="edit-password"
-                  type="text"
+                  type="password"
                   placeholder="パスワードを入力"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

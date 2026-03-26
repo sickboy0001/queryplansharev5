@@ -5,6 +5,7 @@ import { generateShortId } from "@/lib/utils";
 import { isAdminEmail } from "@/service/user-service";
 import { nanoid } from "nanoid";
 import bcrypt from "bcryptjs";
+import type { GuestEditPayload } from "@/lib/guest-auth";
 
 export type Post = {
   id: string;
@@ -38,10 +39,12 @@ export async function getPosts(
   const userId = session?.user?.id;
 
   let sql = `
-    SELECT p.*, u.display_name as owner_name 
-    FROM qps_posts p
-    LEFT JOIN users u ON p.owner_id = u.id
-    WHERE p.is_active = 1
+  SELECT p.id, p.title, p.comment_markdown, p.owner_id, p.edit_token,
+         p.is_active, p.is_public, p.created_at, p.updated_at,
+         u.display_name as owner_name
+  FROM qps_posts p
+  LEFT JOIN users u ON p.owner_id = u.id
+  WHERE p.is_active = 1
   `;
   const args: any[] = [];
 
@@ -78,10 +81,12 @@ export async function getPosts(
  */
 export async function getAllPostsForAdmin() {
   const sql = `
-    SELECT p.*, u.display_name as owner_name 
-    FROM qps_posts p
-    LEFT JOIN users u ON p.owner_id = u.id
-    ORDER BY p.updated_at DESC
+  SELECT p.id, p.title, p.comment_markdown, p.owner_id, p.edit_token,
+         p.is_active, p.is_public, p.created_at, p.updated_at,
+         u.display_name as owner_name
+  FROM qps_posts p
+  LEFT JOIN users u ON p.owner_id = u.id
+  ORDER BY p.updated_at DESC
   `;
   const res = await query(sql, []);
   return res.rows as unknown as Post[];
@@ -92,11 +97,13 @@ export async function getAllPostsForAdmin() {
  */
 export async function getMyAllPosts(userId: string) {
   const sql = `
-    SELECT p.*, u.display_name as owner_name 
-    FROM qps_posts p
-    LEFT JOIN users u ON p.owner_id = u.id
-    WHERE p.owner_id = ?
-    ORDER BY p.updated_at DESC
+  SELECT p.id, p.title, p.comment_markdown, p.owner_id, p.edit_token,
+         p.is_active, p.is_public, p.created_at, p.updated_at,
+         u.display_name as owner_name
+  FROM qps_posts p
+  LEFT JOIN users u ON p.owner_id = u.id
+  WHERE p.owner_id = ?
+  ORDER BY p.updated_at DESC
   `;
   const res = await query(sql, [userId]);
   return res.rows as unknown as Post[];
@@ -167,6 +174,7 @@ export async function updatePost(
     is_active?: boolean;
     edit_token?: string;
   },
+  guestPayload?: GuestEditPayload,
 ) {
   const session = await auth();
   const post = await getPostById(id);
@@ -179,13 +187,15 @@ export async function updatePost(
     post.owner_id &&
     String(post.owner_id) === String(session.user.id)
   );
-  const isGuestWithToken = !!(
+  const isGuestWithToken = !!(guestPayload && guestPayload.postId === id);
+  // 古い edit_token 方式も下位互換として残す
+  const isGuestWithOldToken = !!(
     post.edit_token &&
     data.edit_token &&
     (await bcrypt.compare(data.edit_token, post.edit_token))
   );
 
-  if (!isAdmin && !isOwner && !isGuestWithToken) {
+  if (!isAdmin && !isOwner && !isGuestWithToken && !isGuestWithOldToken) {
     throw new Error("Unauthorized");
   }
 
@@ -226,7 +236,11 @@ export async function updatePost(
   await query(`UPDATE qps_posts SET ${updates.join(", ")} WHERE id = ?`, args);
 }
 
-export async function deletePost(id: string, editToken?: string) {
+export async function deletePost(
+  id: string,
+  editToken?: string,
+  guestPayload?: { postId: string; verifiedAt: number },
+) {
   const session = await auth();
   const post = await getPostById(id);
   if (!post) throw new Error("Post not found");
@@ -238,15 +252,23 @@ export async function deletePost(id: string, editToken?: string) {
     post.owner_id &&
     String(post.owner_id) === String(session.user.id)
   );
-  const isGuestWithToken = !!(
+  // ゲスト編集用 JWT トークンによる認証
+  const isGuestWithToken = !!guestPayload && guestPayload.postId === id;
+  // または従来の editToken による認証（下位互換性）
+  const isGuestWithEditToken = !!(
     post.edit_token &&
     editToken &&
     (await bcrypt.compare(editToken, post.edit_token))
   );
 
-  if (!isAdmin && !isOwner && !isGuestWithToken) {
+  // デバッグログ
+  console.log(
+    `[deletePost] id=${id}, isAdmin=${isAdmin}, isOwner=${isOwner}, isGuestWithToken=${isGuestWithToken}, isGuestWithEditToken=${isGuestWithEditToken}, guestPayload=${JSON.stringify(guestPayload)}, editToken=${editToken ? "present" : "missing"}, postOwnerId=${post.owner_id}`,
+  );
+
+  if (!isAdmin && !isOwner && !isGuestWithToken && !isGuestWithEditToken) {
     throw new Error(
-      `Unauthorized: isAdmin=${isAdmin}, isOwner=${isOwner}, isGuestWithToken=${isGuestWithToken}, sessionUid=${session?.user?.id}, postOwnerId=${post.owner_id}`,
+      `Unauthorized: isAdmin=${isAdmin}, isOwner=${isOwner}, isGuestWithToken=${isGuestWithToken}, isGuestWithEditToken=${isGuestWithEditToken}, sessionUid=${session?.user?.id}, postOwnerId=${post.owner_id}`,
     );
   }
 
