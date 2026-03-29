@@ -21,6 +21,7 @@ const HELP_FILES = [
   { slug: "03_guest_limits", label: "ゲストの制限" },
   { slug: "04_security", label: "セキュリティ" },
   { slug: "05_markdown", label: "Markdown" },
+  { slug: "90_terms", label: "利用規約" },
 ];
 
 export function HelpModal({ children }: { children?: React.ReactNode }) {
