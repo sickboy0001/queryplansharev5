@@ -30,6 +30,25 @@ import {
 } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 
+// CONVERT_IMPLICIT を強調表示するヘルパーコンポーネント
+function HighlightConvertImplicit({ text }: { text: string }) {
+  const parts = text.split(/(CONVERT_IMPLICIT\([^)]+\))/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("CONVERT_IMPLICIT")) {
+          return (
+            <span key={i} className="text-red-600 font-bold">
+              {part}
+            </span>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+}
+
 interface OperationInfo {
   nodeId: string;
   physicalOp: string;
@@ -430,7 +449,7 @@ export function PlanTable({ xmlData }: PlanTableProps) {
                                     className="text-amber-500 shrink-0"
                                   />
                                   <span className="text-[9px] text-slate-600 font-mono bg-amber-50 px-1 rounded border border-amber-100/50 break-all">
-                                    {seek}
+                                    <HighlightConvertImplicit text={seek} />
                                   </span>
                                 </div>
                               ))}
@@ -448,7 +467,7 @@ export function PlanTable({ xmlData }: PlanTableProps) {
                                     className="text-blue-400 shrink-0"
                                   />
                                   <span className="text-[9px] text-slate-600 font-mono bg-blue-50 px-1 rounded border border-blue-100/50 break-all">
-                                    {pred}
+                                    <HighlightConvertImplicit text={pred} />
                                   </span>
                                 </div>
                               ))}
