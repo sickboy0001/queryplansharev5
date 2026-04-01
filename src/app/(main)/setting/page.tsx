@@ -12,7 +12,7 @@ import { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "qps5 - Settings",
+    title: "アカウント設定 | Query Plan Share",
   };
 }
 

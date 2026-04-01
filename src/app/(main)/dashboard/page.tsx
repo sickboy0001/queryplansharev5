@@ -7,7 +7,7 @@ import { isAdministrator } from "@/lib/user";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "qps5 - Dashboard",
+    title: "ダッシュボード | Query Plan Share",
   };
 }
 

@@ -19,12 +19,12 @@ export async function generateMetadata({
 
   if (!post) {
     return {
-      title: "qps5 - Not Found",
+      title: "エラー: プランが見つかりません | Query Plan Share",
     };
   }
 
   return {
-    title: `qps5 - ${post.title}`,
+    title: `${post.title} | Query Plan Share`,
   };
 }
 

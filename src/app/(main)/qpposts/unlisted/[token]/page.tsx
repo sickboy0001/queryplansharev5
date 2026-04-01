@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "qps5 - Unlisted Post",
+    title: "限定公開プラン | Query Plan Share",
   };
 }
 

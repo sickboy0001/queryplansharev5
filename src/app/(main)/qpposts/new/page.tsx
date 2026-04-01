@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "qps5 - Create Post",
+    title: "新規プラン投稿 | Query Plan Share",
   };
 }
 

@@ -5,7 +5,7 @@ import { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: "qps5 - Posts-List",
+    title: "プランギャラリー | Query Plan Share",
   };
 }
 

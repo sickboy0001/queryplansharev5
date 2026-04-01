@@ -4,9 +4,27 @@ import { notFound } from "next/navigation";
 import Help from "@/components/pages/help/Help";
 import { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const decodedSlug = decodeURIComponent(slug);
+  const helpDir = path.join(process.cwd(), "src/contents/help");
+  const filePath = path.join(helpDir, `${decodedSlug}.md`);
+
+  let title = "ヘルプセンター";
+  if (fs.existsSync(filePath)) {
+    const fileContent = fs.readFileSync(filePath, "utf8");
+    const match = fileContent.match(/^#\s+(.+)$/m);
+    if (match) {
+      title = match[1];
+    }
+  }
+
   return {
-    title: "qps5 - Help",
+    title: `${title} | ヘルプセンター | Query Plan Share`,
   };
 }
 

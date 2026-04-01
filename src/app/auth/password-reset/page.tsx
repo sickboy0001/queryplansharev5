@@ -10,7 +10,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function PasswordResetPage() {
@@ -20,6 +20,10 @@ export default function PasswordResetPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  useEffect(() => {
+    document.title = "パスワード再設定 | Query Plan Share";
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

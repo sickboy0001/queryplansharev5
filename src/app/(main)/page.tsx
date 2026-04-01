@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +14,13 @@ import {
   EyeOff,
 } from "lucide-react";
 import { UnlistedGuideDrawer } from "@/components/organisms/UnlistedGuideDrawer";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Query Plan Share | SQL Server 実行プラン共有・可視化サービス",
+  description:
+    "SQL Server の実行プランを美しく可視化し、チームで共有。ボトルネックの特定を加速させます。",
+};
 
 export default function LandingPage() {
   return (

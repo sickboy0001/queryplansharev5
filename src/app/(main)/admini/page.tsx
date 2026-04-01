@@ -2,6 +2,13 @@ import { auth } from "@/auth";
 import { isAdministrator } from "@/lib/user";
 import { notFound } from "next/navigation";
 import AdminiPageContent from "@/components/pages/admini/admini";
+import { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "管理者ダッシュボード | Query Plan Share",
+  };
+}
 
 export default async function AdminiPage() {
   const session = await auth();
