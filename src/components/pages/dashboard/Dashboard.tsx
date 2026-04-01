@@ -23,6 +23,7 @@ import { DASHBOARD_MENU_ITEMS } from "@/constants/menu_dashboard";
 interface Props {
   posts: PostCardData[];
   recentComments: CommentCardData[];
+  isAdmin?: boolean;
 }
 
 const iconMap: Record<string, any> = {
@@ -32,7 +33,7 @@ const iconMap: Record<string, any> = {
   Settings,
 };
 
-export default function Dashboard({ posts, recentComments }: Props) {
+export default function Dashboard({ posts, recentComments, isAdmin }: Props) {
   const searchParams = useSearchParams();
   const errorParam = searchParams.get("error");
   const [showError, setShowError] = useState(false);
@@ -45,6 +46,10 @@ export default function Dashboard({ posts, recentComments }: Props) {
       window.history.replaceState({}, "", url.pathname);
     }
   }, [errorParam]);
+
+  const filteredMenuItems = DASHBOARD_MENU_ITEMS.filter(
+    (item) => !item.isAdminOnly || isAdmin,
+  );
 
   return (
     <div className="container py-8 space-y-12 px-4 max-w-7xl mx-auto">
@@ -93,7 +98,7 @@ export default function Dashboard({ posts, recentComments }: Props) {
 
       {/* Quick Access Menu Bar */}
       <section className="bg-white border-2 border-[#000080]/10 rounded-xl shadow-sm overflow-hidden flex divide-x-2 divide-slate-100">
-        {DASHBOARD_MENU_ITEMS.map((item, index) => {
+        {filteredMenuItems.map((item, index) => {
           const Icon = iconMap[item.iconName];
           const content = (
             <div className="flex-1 flex items-center gap-3 p-4 hover:bg-[#000080]/5 transition-all group min-w-0 cursor-pointer">

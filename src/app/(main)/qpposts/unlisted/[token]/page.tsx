@@ -1,5 +1,12 @@
 import { getUnlistedLinkByToken } from "@/service/qppost-service";
+import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "qps5 - Unlisted Post",
+  };
+}
 
 export default async function UnlistedPage({
   params,

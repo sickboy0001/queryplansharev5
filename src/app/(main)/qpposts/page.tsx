@@ -1,6 +1,13 @@
 ﻿import QpPostList from "@/components/pages/qppost/QpPostList";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/service/user-service";
+import { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "qps5 - Posts-List",
+  };
+}
 
 export default async function PostsPage({
   searchParams,

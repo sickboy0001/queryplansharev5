@@ -2,6 +2,13 @@ import fs from "fs";
 import path from "path";
 import { notFound } from "next/navigation";
 import Help from "@/components/pages/help/Help";
+import { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "qps5 - Help",
+  };
+}
 
 export default async function HelpDetailPage({
   params,

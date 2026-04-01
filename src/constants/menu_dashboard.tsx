@@ -13,6 +13,7 @@ export type DashboardMenuItem = {
   iconName: string; // We'll map this to actual icons in the component
   color: string;
   isModal?: boolean;
+  isAdminOnly?: boolean;
 };
 
 export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
@@ -43,5 +44,13 @@ export const DASHBOARD_MENU_ITEMS: DashboardMenuItem[] = [
     href: "/setting",
     iconName: "Settings",
     color: "bg-slate-500",
+  },
+  {
+    title: "管理者ダッシュボード",
+    description: "分析データの確認やOGPプレビューを行います。",
+    href: "/admini",
+    iconName: "LayoutGrid",
+    color: "bg-red-500",
+    isAdminOnly: true,
   },
 ];

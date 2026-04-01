@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { revalidatePath } from "next/cache";
 import { query } from "@/lib/db";
 
+import { Metadata } from "next";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "qps5 - Settings",
+  };
+}
+
 export default async function SettingPage() {
   const user = await getCurrentUser();
 

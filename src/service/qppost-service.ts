@@ -164,6 +164,16 @@ export async function getPostById(id: string) {
   return (res.rows[0] as unknown as Post) || null;
 }
 
+export async function getPostTitleById(id: string) {
+  const res = await query(
+    `SELECT p.title 
+     FROM qps_posts p
+     WHERE p.id = ?`,
+    [id],
+  );
+  return (res.rows[0] as unknown as { title: string }) || null;
+}
+
 export async function updatePost(
   id: string,
   data: {

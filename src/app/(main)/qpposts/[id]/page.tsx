@@ -1,8 +1,32 @@
-﻿import { getPostById, getUnlistedLinkByToken } from "@/service/qppost-service";
+﻿import {
+  getPostById,
+  getPostTitleById,
+  getUnlistedLinkByToken,
+} from "@/service/qppost-service";
 import { notFound, redirect } from "next/navigation";
 import QpPost from "@/components/pages/qppost/QpPost";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/service/user-service";
+import { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPostTitleById(id);
+
+  if (!post) {
+    return {
+      title: "qps5 - Not Found",
+    };
+  }
+
+  return {
+    title: `qps5 - ${post.title}`,
+  };
+}
 
 export default async function PostDetailPage({
   params,

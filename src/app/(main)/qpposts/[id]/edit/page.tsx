@@ -1,10 +1,33 @@
-import { getPostById, getUnlistedLinkByPostId } from "@/service/qppost-service";
+import {
+  getPostById,
+  getPostTitleById,
+  getUnlistedLinkByPostId,
+} from "@/service/qppost-service";
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import EditPost from "@/components/pages/qppost/EditPost";
 import { isAdminEmail } from "@/service/user-service";
 import { verifyGuestEditCookie } from "@/lib/guest-auth";
+import { Metadata } from "next";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPostTitleById(id);
+
+  if (!post) {
+    return {
+      title: "qps5 - Edit Post: Not Found",
+    };
+  }
+
+  return {
+    title: `qps5 - Edit Post: ${post.title}`,
+  };
+}
 export default async function EditPostPage({
   params,
 }: {
