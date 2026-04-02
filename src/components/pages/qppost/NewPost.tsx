@@ -21,6 +21,7 @@ import {
   DEFAULT_POST_TITLE,
   DEFAULT_POST_COMMENT,
 } from "@/constants/post-defaults";
+import { validateQueryPlanXml } from "@/lib/utils/query-plan-validation";
 
 export default function NewPost() {
   const { data: session, status } = useSession();
@@ -46,6 +47,13 @@ export default function NewPost() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!xml || !title) return;
+
+    const validation = validateQueryPlanXml(xml);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
     if (isGuest && !password) {
       toast.error("ゲスト投稿にはパスワードが必要です。");
       return;
@@ -140,12 +148,17 @@ export default function NewPost() {
             )}
 
             <div className="space-y-2">
-              <Label
-                htmlFor="xml"
-                className="font-bold text-[#000080] text-sm uppercase tracking-wider"
-              >
-                Query Plan XML (.sqlplan)
-              </Label>
+              <div className="flex justify-between items-end">
+                <Label
+                  htmlFor="xml"
+                  className="font-bold text-[#000080] text-sm uppercase tracking-wider"
+                >
+                  Query Plan XML (.sqlplan)
+                </Label>
+                <span className="text-[10px] text-slate-400 font-bold">
+                  上限 1MB / SQL Server 形式
+                </span>
+              </div>
               <Textarea
                 id="xml"
                 placeholder="<ShowPlanXML ...>...</ShowPlanXML>"

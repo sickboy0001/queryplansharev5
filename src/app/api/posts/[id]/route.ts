@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyGuestEditCookie } from "@/lib/guest-auth";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/service/user-service";
+import { validateQueryPlanXml } from "@/lib/utils/query-plan-validation";
 
 export async function PUT(
   req: NextRequest,
@@ -11,6 +12,13 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await req.json();
+
+    if (body.query_plan_xml) {
+      const validation = validateQueryPlanXml(body.query_plan_xml);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
 
     // JWT Cookie を検証（ゲスト編集用）
     const guestPayload = await verifyGuestEditCookie(id);

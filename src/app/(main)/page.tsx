@@ -55,11 +55,11 @@ export default function LandingPage() {
                 POST A PLAN <ArrowRight className="ml-3 w-8 h-8" />
               </Button>
             </Link>
-            <Link href="/qpposts" className="w-full sm:w-auto">
+            <Link href="/dashboard" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 variant="outline"
-                className="bg-[#000080] border-4 border-white text-white hover:bg-white  font-black px-10 py-10 text-2xl rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 w-full"
+                className="bg-[#000080] border-4 border-white text-white  font-black px-10 py-10 text-2xl rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 w-full"
               >
                 BROWSE GALLERY
               </Button>

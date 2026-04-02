@@ -1,5 +1,6 @@
 import { createPost, getPosts } from "@/service/qppost-service";
 import { NextRequest, NextResponse } from "next/server";
+import { validateQueryPlanXml } from "@/lib/utils/query-plan-validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -27,6 +28,11 @@ export async function POST(req: NextRequest) {
         { error: "Title and XML are required" },
         { status: 400 },
       );
+    }
+
+    const validation = validateQueryPlanXml(data.query_plan_xml);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const { id, editToken } = await createPost({

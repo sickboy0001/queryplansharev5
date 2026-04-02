@@ -43,6 +43,7 @@ import {
   resetExpiryAction,
   deleteUnlistedLinkAction,
 } from "@/lib/actions/qppost";
+import { validateQueryPlanXml } from "@/lib/utils/query-plan-validation";
 
 type Post = {
   id: string;
@@ -211,6 +212,12 @@ export default function EditPost({
     if (e) e.preventDefault();
     if (!xml || !title) return;
 
+    const validation = validateQueryPlanXml(xml);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
+
     // 限定公開だがリンク未取得の場合はエラー
     if (isPublic === 1 && !unlistedLink) {
       toast.error(
@@ -309,13 +316,18 @@ export default function EditPost({
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="xml"
-                    id="section-xml"
-                    className="font-bold text-[#000080] text-sm uppercase tracking-wider scroll-mt-24"
-                  >
-                    Query Plan XML (.sqlplan)
-                  </Label>
+                  <div className="flex justify-between items-end">
+                    <Label
+                      htmlFor="xml"
+                      id="section-xml"
+                      className="font-bold text-[#000080] text-sm uppercase tracking-wider scroll-mt-24"
+                    >
+                      Query Plan XML (.sqlplan)
+                    </Label>
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      上限 1MB / SQL Server 形式
+                    </span>
+                  </div>
                   <Textarea
                     id="xml"
                     className="font-mono text-xs border-2 focus:border-[#000080] focus:ring-0 transition-all rounded-lg bg-slate-50 !field-sizing-fixed"

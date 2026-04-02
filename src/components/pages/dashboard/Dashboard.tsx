@@ -120,13 +120,17 @@ export default function Dashboard({ posts, recentComments, isAdmin }: Props) {
 
           if (item.isModal && item.title === "ヘルプセンター") {
             return (
-              <HelpModal key={index} className="flex">
+              <HelpModal key={index} className="flex md:flex-1">
                 {content}
               </HelpModal>
             );
           }
           return (
-            <Link key={index} href={item.href || "#"} className="flex">
+            <Link
+              key={index}
+              href={item.href || "#"}
+              className="flex md:flex-1"
+            >
               {content}
             </Link>
           );
