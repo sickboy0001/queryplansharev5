@@ -97,17 +97,17 @@ export default function Dashboard({ posts, recentComments, isAdmin }: Props) {
       </section>
 
       {/* Quick Access Menu Bar */}
-      <section className="bg-white border-2 border-[#000080]/10 rounded-xl shadow-sm overflow-hidden flex divide-x-2 divide-slate-100">
+      <section className="bg-white border-2 border-[#000080]/10 rounded-xl shadow-sm overflow-hidden grid grid-cols-2 md:flex md:divide-x-2 md:divide-slate-100">
         {filteredMenuItems.map((item, index) => {
           const Icon = iconMap[item.iconName];
           const content = (
-            <div className="flex-1 flex items-center gap-3 p-4 hover:bg-[#000080]/5 transition-all group min-w-0 cursor-pointer">
+            <div className="flex-1 flex items-center gap-3 p-4 hover:bg-[#000080]/5 transition-all group min-w-0 cursor-pointer border-b md:border-b-0 border-slate-100 odd:border-r md:border-r-0">
               <div
                 className={`shrink-0 w-8 h-8 ${item.color} text-white rounded flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}
               >
                 {Icon && <Icon size={16} />}
               </div>
-              <div className="min-w-0 overflow-hidden">
+              <div className="min-w-0 overflow-hidden text-left">
                 <h3 className="font-black text-[#000080] text-sm uppercase tracking-tight truncate">
                   {item.title}
                 </h3>
@@ -119,10 +119,14 @@ export default function Dashboard({ posts, recentComments, isAdmin }: Props) {
           );
 
           if (item.isModal && item.title === "ヘルプセンター") {
-            return <HelpModal key={index}>{content}</HelpModal>;
+            return (
+              <HelpModal key={index} className="flex">
+                {content}
+              </HelpModal>
+            );
           }
           return (
-            <Link key={index} href={item.href || "#"} className="flex-1 flex">
+            <Link key={index} href={item.href || "#"} className="flex">
               {content}
             </Link>
           );

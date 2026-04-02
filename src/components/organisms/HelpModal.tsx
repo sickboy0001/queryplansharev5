@@ -24,7 +24,13 @@ const HELP_FILES = [
   { slug: "90_terms", label: "利用規約" },
 ];
 
-export function HelpModal({ children }: { children?: React.ReactNode }) {
+export function HelpModal({
+  children,
+  className,
+}: {
+  children?: React.ReactNode;
+  className?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentSlug, setCurrentSlug] = useState<string>("00_index");
   const [cache, setCache] = useState<Record<string, string>>({});
@@ -69,7 +75,7 @@ export function HelpModal({ children }: { children?: React.ReactNode }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild className={className}>
         {children || (
           <Button
             variant="ghost"

@@ -33,6 +33,13 @@
 - **ユーザーアクション** ([`src/service/user-actions.ts`](src/service/user-actions.ts))
   - ユーザー関連の操作をカプセル化
 
+- **管理者ダッシュボード** ([`src/app/(main)/admini/page.tsx`](src/app/(main)/admini/page.tsx))
+  - Looker Studio 連携による統計表示
+  - Vercel OG プレビュー機能
+  - 管理者専用アクセス制御（`ADMINISTRATOR_MAIL`）
+- **動的ページタイトル設定** ([`src/app/(main)/layout.tsx`](src/app/(main)/layout.tsx))
+  - 各ページで `Metadata` を使用した統一感のあるタイトル設定
+
 ### 2. コメント機能
 
 - **コメントサービス** ([`src/service/comments-service.ts`](src/service/comments-service.ts))
